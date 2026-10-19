@@ -1,5 +1,5 @@
 import api from './api';
-import { Election, Position, Candidate } from '../types';
+import { ApiResponse, Election } from '../types';
 
 export const electionService = {
   getElections: async (page = 1, limit = 10) => {
@@ -10,7 +10,7 @@ export const electionService = {
   },
 
   getElection: async (id: string) => {
-    const response = await api.get<Election>(`/elections/${id}`);
+    const response = await api.get<ApiResponse<Election>>(`/elections/${id}`);
     return response.data.data;
   },
 
@@ -20,7 +20,7 @@ export const electionService = {
     startDate: Date;
     endDate: Date;
   }) => {
-    const response = await api.post<Election>('/elections', data);
+    const response = await api.post<ApiResponse<Election>>('/elections', data);
     return response.data.data;
   },
 
@@ -34,7 +34,7 @@ export const electionService = {
       status?: string;
     }
   ) => {
-    const response = await api.put<Election>(`/elections/${id}`, data);
+    const response = await api.put<ApiResponse<Election>>(`/elections/${id}`, data);
     return response.data.data;
   },
 

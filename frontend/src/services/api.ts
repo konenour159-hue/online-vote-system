@@ -1,6 +1,9 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// En production (Vercel), l'API est servie sur la même adresse que le site grâce à la redirection /api de vercel.json :
+// pas de CORS, et le cookie de session reste « first-party ». En développement, on garde l'API locale.
+// VITE_API_URL, s'il est défini, a toujours priorité.
+const API_BASE_URL: string = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:5000' : '');
 
 const api: AxiosInstance = axios.create({
   baseURL: `${API_BASE_URL}/api`,

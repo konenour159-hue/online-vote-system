@@ -1,8 +1,9 @@
-import React, { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useThemeStore } from './store/themeStore';
 import { PrivateRoute } from './components/PrivateRoute';
 import { RouteEffects } from './components/RouteEffects';
+import { PwaStatus } from './components/PwaStatus';
 import { LandingPage } from './pages/LandingPage';
 
 // Chargement à la demande : chaque page n'est téléchargée que lorsqu'on y va.
@@ -34,6 +35,7 @@ function App() {
   return (
     <BrowserRouter>
       <RouteEffects />
+      <PwaStatus />
       <Suspense fallback={<p role="status" className="p-8 text-muted">Chargement…</p>}>
       <Routes>
         <Route path="/" element={<LandingPage />} />

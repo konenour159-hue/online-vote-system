@@ -11,10 +11,12 @@ import api from '../services/api';
 import { FadeIn } from '../motion/FadeIn';
 import { popSelected } from '../motion/usePressPop';
 import { useIsAdmin } from '../hooks/useRole';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
 
 export const ElectionPage: React.FC = () => {
   const { id = '' } = useParams();
   const isAdmin = useIsAdmin();
+  const online = useOnlineStatus();
   const { data: election, isLoading, isError } = useQuery({
     queryKey: ['election', id],
     queryFn: () => electionService.getElection(id)
@@ -131,10 +133,14 @@ export const ElectionPage: React.FC = () => {
                   ))}
                 </div>
                 <div className="mt-10 flex items-center gap-4">
-                  <Button size="lg" onClick={submit} isLoading={submitting} disabled={pending.length === 0 || (election as any).status !== 'ACTIVE'}>
+                  <Button size="lg" onClick={submit} isLoading={submitting} disabled={pending.length === 0 || (election as any).status !== 'ACTIVE' || !online}>
                     Valider le bulletin
                   </Button>
-                  <p className="text-sm text-muted">Les votes sont définitifs une fois validés.</p>
+                  <p className="text-sm text-muted">
+                    {online
+                      ? 'Les votes sont définitifs une fois validés.'
+                      : 'Vous êtes hors ligne : reconnectez-vous pour valider votre bulletin.'}
+                  </p>
                 </div>
               </>
             )}

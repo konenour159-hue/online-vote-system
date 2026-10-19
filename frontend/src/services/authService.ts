@@ -1,9 +1,9 @@
 import api from './api';
-import { AuthResponse, User } from '../types';
+import { ApiResponse, AuthResponse, User } from '../types';
 
 export const authService = {
   register: async (email: string, firstName: string, lastName: string, password: string) => {
-    const response = await api.post<AuthResponse>('/auth/register', {
+    const response = await api.post<ApiResponse<AuthResponse>>('/auth/register', {
       email,
       firstName,
       lastName,
@@ -13,11 +13,11 @@ export const authService = {
   },
 
   login: async (email: string, password: string) => {
-    const response = await api.post<AuthResponse>('/auth/login', {
+    const response = await api.post<ApiResponse<AuthResponse>>('/auth/login', {
       email,
       password
     });
-    const { user, accessToken } = response.data.data;
+    const { user, accessToken } = response.data.data!;
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('user', JSON.stringify(user));
     return { user, accessToken };
@@ -31,7 +31,7 @@ export const authService = {
   },
 
   getCurrentUser: async () => {
-    const response = await api.get<User>('/auth/me');
+    const response = await api.get<ApiResponse<User>>('/auth/me');
     return response.data.data;
   },
 

@@ -1,5 +1,4 @@
 import api from './api';
-import { Election, Position, Candidate } from '../types';
 
 export const analyticsService = {
   getElectionStats: async (electionId: string) => {
