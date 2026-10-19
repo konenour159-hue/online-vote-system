@@ -27,6 +27,16 @@ export const analyticsService = {
     return response.data;
   },
 
+  getMyCandidacies: async () => {
+    const response = await api.get('/analytics/me/candidacy');
+    return response.data.data;
+  },
+
+  getAllActivity: async (limit = 50, action = '') => {
+    const response = await api.get('/analytics/system/activity', { params: { limit, action: action || undefined } });
+    return response.data.data as { items: any[]; total: number };
+  },
+
   getUserActivityLog: async (limit = 50) => {
     const response = await api.get('/analytics/user/activity-log', { params: { limit } });
     return response.data.data;
