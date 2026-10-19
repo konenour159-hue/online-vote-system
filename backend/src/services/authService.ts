@@ -116,11 +116,11 @@ export class AuthService {
     const payload: JwtPayload = { userId, email, roleId };
 
     const accessToken = jwt.sign(payload, config.jwt_access_secret, {
-      expiresIn: config.jwt_access_expiry
+      expiresIn: config.jwt_access_expiry as jwt.SignOptions['expiresIn']
     });
 
     const refreshToken = jwt.sign(payload, config.jwt_refresh_secret, {
-      expiresIn: config.jwt_refresh_expiry
+      expiresIn: config.jwt_refresh_expiry as jwt.SignOptions['expiresIn']
     });
 
     return { accessToken, refreshToken };

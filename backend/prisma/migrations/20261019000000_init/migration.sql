@@ -1,15 +1,3 @@
--- CreateEnum
-CREATE TYPE "ElectionStatus" AS ENUM ('DRAFT', 'ACTIVE', 'COMPLETED', 'CANCELLED');
-
--- CreateTable
-CREATE TABLE "Role" (
-    "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "Role_pkey" PRIMARY KEY ("id")
-);
-
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
@@ -27,6 +15,15 @@ CREATE TABLE "User" (
     "roleId" TEXT NOT NULL,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Role" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Role_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -78,6 +75,7 @@ CREATE TABLE "Candidate" (
     "order" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "userId" TEXT,
 
     CONSTRAINT "Candidate_pkey" PRIMARY KEY ("id")
 );
@@ -91,6 +89,7 @@ CREATE TABLE "Vote" (
     "positionId" TEXT NOT NULL,
     "encryptedVote" TEXT NOT NULL,
     "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "userId" TEXT,
 
     CONSTRAINT "Vote_pkey" PRIMARY KEY ("id")
 );
@@ -136,9 +135,6 @@ CREATE TABLE "AuditLog" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Role_name_key" ON "Role"("name");
-
--- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
@@ -146,6 +142,9 @@ CREATE INDEX "User_roleId_idx" ON "User"("roleId");
 
 -- CreateIndex
 CREATE INDEX "User_email_idx" ON "User"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Role_name_key" ON "Role"("name");
 
 -- CreateIndex
 CREATE INDEX "Election_adminId_idx" ON "Election"("adminId");
@@ -157,16 +156,16 @@ CREATE INDEX "Election_status_idx" ON "Election"("status");
 CREATE UNIQUE INDEX "ElectionAdmin_userId_key" ON "ElectionAdmin"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Position_electionId_title_key" ON "Position"("electionId", "title");
+CREATE INDEX "Position_electionId_idx" ON "Position"("electionId");
 
 -- CreateIndex
-CREATE INDEX "Position_electionId_idx" ON "Position"("electionId");
+CREATE UNIQUE INDEX "Position_electionId_title_key" ON "Position"("electionId", "title");
 
 -- CreateIndex
 CREATE INDEX "Candidate_positionId_idx" ON "Candidate"("positionId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Vote_voterId_electionId_positionId_key" ON "Vote"("voterId", "electionId", "positionId");
+CREATE INDEX "Candidate_userId_idx" ON "Candidate"("userId");
 
 -- CreateIndex
 CREATE INDEX "Vote_voterId_idx" ON "Vote"("voterId");
@@ -178,13 +177,16 @@ CREATE INDEX "Vote_electionId_idx" ON "Vote"("electionId");
 CREATE INDEX "Vote_candidateId_idx" ON "Vote"("candidateId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Voter_userId_electionId_key" ON "Voter"("userId", "electionId");
+CREATE UNIQUE INDEX "Vote_voterId_electionId_positionId_key" ON "Vote"("voterId", "electionId", "positionId");
 
 -- CreateIndex
 CREATE INDEX "Voter_electionId_idx" ON "Voter"("electionId");
 
 -- CreateIndex
 CREATE INDEX "Voter_userId_idx" ON "Voter"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Voter_userId_electionId_key" ON "Voter"("userId", "electionId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "RefreshToken_token_key" ON "RefreshToken"("token");
@@ -217,6 +219,9 @@ ALTER TABLE "Position" ADD CONSTRAINT "Position_electionId_fkey" FOREIGN KEY ("e
 ALTER TABLE "Candidate" ADD CONSTRAINT "Candidate_positionId_fkey" FOREIGN KEY ("positionId") REFERENCES "Position"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Candidate" ADD CONSTRAINT "Candidate_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Vote" ADD CONSTRAINT "Vote_voterId_fkey" FOREIGN KEY ("voterId") REFERENCES "Voter"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -227,6 +232,9 @@ ALTER TABLE "Vote" ADD CONSTRAINT "Vote_candidateId_fkey" FOREIGN KEY ("candidat
 
 -- AddForeignKey
 ALTER TABLE "Vote" ADD CONSTRAINT "Vote_positionId_fkey" FOREIGN KEY ("positionId") REFERENCES "Position"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Vote" ADD CONSTRAINT "Vote_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Voter" ADD CONSTRAINT "Voter_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -242,3 +250,4 @@ ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_userId_fkey" FOREIGN KEY ("userI
 
 -- AddForeignKey
 ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_electionId_fkey" FOREIGN KEY ("electionId") REFERENCES "Election"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+

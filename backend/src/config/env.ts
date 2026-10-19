@@ -20,7 +20,10 @@ export const config = {
   allowed_file_types: (process.env.ALLOWED_FILE_TYPES || 'jpg,jpeg,png,gif').split(','),
   upload_dir: process.env.UPLOAD_DIR || './uploads',
   rate_limit_window: parseInt(process.env.RATE_LIMIT_WINDOW || '15', 10),
-  rate_limit_max_requests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
+  rate_limit_max_requests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1500', 10),
+  auth_rate_limit_max_requests: parseInt(process.env.AUTH_RATE_LIMIT_MAX_REQUESTS || '30', 10),
+  // Nombre de proxys devant l'API (Vercel puis Render = 2), pour lire la vraie adresse IP du visiteur
+  trust_proxy: parseInt(process.env.TRUST_PROXY || '0', 10),
   cors_origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   redis_url: process.env.REDIS_URL || 'redis://localhost:6379',
   socket_io_cors: process.env.SOCKET_IO_CORS || 'http://localhost:5173'

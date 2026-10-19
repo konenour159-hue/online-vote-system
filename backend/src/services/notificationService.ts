@@ -34,7 +34,7 @@ export class NotificationService {
   async notifyElectionStart(electionId: string) {
     const election = await prisma.election.findUnique({
       where: { id: electionId },
-      include: { voters: true }
+      include: { voters: { include: { user: true } } }
     });
 
     if (!election) return;
@@ -52,7 +52,7 @@ export class NotificationService {
   async notifyElectionEnd(electionId: string) {
     const election = await prisma.election.findUnique({
       where: { id: electionId },
-      include: { voters: true }
+      include: { voters: { include: { user: true } } }
     });
 
     if (!election) return;

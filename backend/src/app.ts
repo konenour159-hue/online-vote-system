@@ -11,6 +11,11 @@ import { logger } from './utils/logger.js';
 
 const app: Express = express();
 
+// Derrière Vercel puis Render : sans cela, tous les visiteurs auraient la même adresse IP (celle du proxy).
+if (config.trust_proxy > 0) {
+  app.set('trust proxy', config.trust_proxy);
+}
+
 // Middleware
 app.use(helmet({
   contentSecurityPolicy: {

@@ -54,7 +54,11 @@ export const updateElection = asyncHandler(async (req: Request, res: Response) =
   const { id } = req.params;
   const data = validate(updateElectionSchema, req.body);
 
-  const election = await electionService.updateElection(id, req.user.userId, data);
+  const election = await electionService.updateElection(
+    id,
+    req.user.userId,
+    data as Parameters<typeof electionService.updateElection>[2]
+  );
   sendSuccess(res, 200, 'Election updated successfully', election);
 });
 

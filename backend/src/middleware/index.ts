@@ -3,6 +3,6 @@ export { authorizeResultsAccess } from './resultsAccess.js';
 export { authorize } from './authorization.js';
 export { errorHandler } from './errorHandler.js';
 export { asyncHandler } from './asyncHandler.js';
-export { rateLimiter } from './rateLimiter.js';
+export { rateLimiter, authRateLimiter } from './rateLimiter.js';
 export { requestLogger } from './requestLogger.js';
 export { corsMiddleware } from './corsMiddleware.js';

@@ -7,6 +7,13 @@ interface RateLimitEntry {
   resetTime: number;
 }
 
+interface LimiterOptions {
+  /** nom du compteur, pour garder les limites séparées */
+  name: string;
+  windowMs: number;
+  max: number;
+}
+
 const store = new Map<string, RateLimitEntry>();
 
 const cleanExpiredEntries = (): void => {
@@ -18,37 +25,39 @@ const cleanExpiredEntries = (): void => {
   }
 };
 
-export const rateLimiter = (req: Request, _res: Response, next: NextFunction): void => {
-  cleanExpiredEntries();
+export const createRateLimiter = ({ name, windowMs, max }: LimiterOptions) => {
+  return (req: Request, _res: Response, next: NextFunction): void => {
+    cleanExpiredEntries();
 
-  const ip = req.ip || req.socket.remoteAddress || 'unknown';
-  const windowMs = config.rate_limit_window * 60 * 1000;
-  const maxRequests = config.rate_limit_max_requests;
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const key = `${name}:${ip}`;
+    const now = Date.now();
+    const entry = store.get(key);
 
-  const now = Date.now();
-  const entry = store.get(ip);
+    if (!entry || now > entry.resetTime) {
+      store.set(key, { count: 1, resetTime: now + windowMs });
+      next();
+      return;
+    }
 
-  if (!entry) {
-    store.set(ip, {
-      count: 1,
-      resetTime: now + windowMs
-    });
+    entry.count++;
+    if (entry.count > max) {
+      throw new AppError(429, 'Too many requests, please try again later');
+    }
     next();
-    return;
-  }
-
-  if (now > entry.resetTime) {
-    entry.count = 1;
-    entry.resetTime = now + windowMs;
-    next();
-    return;
-  }
-
-  entry.count++;
-
-  if (entry.count > maxRequests) {
-    throw new AppError(429, 'Too many requests, please try again later');
-  }
-
-  next();
+  };
 };
+
+/** Limite générale : large, car plusieurs membres d'un même groupe partagent souvent la même adresse IP. */
+export const rateLimiter = createRateLimiter({
+  name: 'general',
+  windowMs: config.rate_limit_window * 60 * 1000,
+  max: config.rate_limit_max_requests
+});
+
+/** Limite stricte sur la connexion et l'inscription, contre les essais de mots de passe. */
+export const authRateLimiter = createRateLimiter({
+  name: 'auth',
+  windowMs: config.rate_limit_window * 60 * 1000,
+  max: config.auth_rate_limit_max_requests
+});

@@ -25,8 +25,8 @@ export const validatePagination = z.object({
   limit: z.coerce.number().int().positive().max(100).default(10)
 });
 
-export const validate = <T>(schema: ZodSchema, data: unknown): T => {
-  return schema.parse(data) as T;
+export const validate = <S extends ZodSchema>(schema: S, data: unknown): z.infer<S> => {
+  return schema.parse(data);
 };
 
 export const safeValidate = <T>(schema: ZodSchema, data: unknown): { data?: T; error?: string } => {
