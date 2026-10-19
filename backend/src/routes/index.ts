@@ -6,6 +6,7 @@ import candidateRoutes from './candidateRoutes.js';
 import voteRoutes from './voteRoutes.js';
 import analyticsRoutes from './analyticsRoutes.js';
 import importRoutes from './importRoutes.js';
+import adminRoutes from './adminRoutes.js';
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use('/candidates', candidateRoutes);
 router.use('/votes', voteRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/import', importRoutes);
+router.use('/admin', adminRoutes);
 
 export default router;

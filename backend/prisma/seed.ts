@@ -89,16 +89,16 @@ async function main() {
 
   // Create sample election
   const now = new Date();
-  const startDate = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Tomorrow
+  const startDate = new Date(now.getTime() - 60 * 60 * 1000); // Ouvert depuis une heure
   const endDate = new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days later
 
   const election = await prisma.election.create({
     data: {
-      title: 'Annual Club President Election 2024',
-      description: 'Vote for the next president of our organization',
+      title: 'Élection du responsable du groupe 2026',
+      description: 'Choisissez la personne qui dirigera le groupe cette année.',
       startDate,
       endDate,
-      status: 'DRAFT',
+      status: 'ACTIVE',
       isPublic: true,
       admin: {
         connect: { id: (await prisma.electionAdmin.findUnique({ where: { userId: electionAdmin.id } }))?.id || '' }
@@ -111,8 +111,8 @@ async function main() {
   // Create positions
   const presidentPosition = await prisma.position.create({
     data: {
-      title: 'President',
-      description: 'Lead the organization',
+      title: 'Président',
+      description: 'Dirige le groupe et le représente',
       order: 1,
       maxVotes: 1,
       electionId: election.id
@@ -121,8 +121,8 @@ async function main() {
 
   const secretaryPosition = await prisma.position.create({
     data: {
-      title: 'Secretary',
-      description: 'Handle organizational records',
+      title: 'Secrétaire',
+      description: 'Tient les comptes rendus et les documents du groupe',
       order: 2,
       maxVotes: 1,
       electionId: election.id
@@ -140,13 +140,31 @@ async function main() {
     { name: 'Eve Davis', position: secretaryPosition.id, order: 2 }
   ];
 
+  // Comptes de candidats : chacun suit uniquement ses propres résultats
+  const candidateAccounts: Record<string, string> = {
+    'Alice Johnson': 'alice.johnson@votingsystem.com',
+    'Bob Smith': 'bob.smith@votingsystem.com'
+  };
+
   for (const candidate of candidates) {
+    const email = candidateAccounts[candidate.name];
+    let accountId: string | undefined;
+    if (email) {
+      const [firstName, ...rest] = candidate.name.split(' ');
+      const account = await prisma.user.upsert({
+        where: { email },
+        update: {},
+        create: { email, firstName, lastName: rest.join(' '), password: hashedPassword, roleId: voterRole.id, emailVerified: true }
+      });
+      accountId = account.id;
+    }
     await prisma.candidate.create({
       data: {
         name: candidate.name,
-        bio: `Bio for ${candidate.name}`,
+        bio: `Candidature de ${candidate.name}`,
         positionId: candidate.position,
-        order: candidate.order
+        order: candidate.order,
+        userId: accountId
       }
     });
   }

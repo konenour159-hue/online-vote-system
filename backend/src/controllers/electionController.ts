@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/index.js';
 import { electionService } from '../services/index.js';
 import { sendSuccess, sendError } from '../utils/response.js';
+import { stripCandidateAccounts } from '../utils/publicData.js';
 import { validate, validatePagination } from '../utils/validation.js';
 import { ValidationError } from '../utils/errors.js';
 import { z } from 'zod';
@@ -42,7 +43,7 @@ export const createElection = asyncHandler(async (req: Request, res: Response) =
 export const getElection = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const election = await electionService.getElection(id);
-  sendSuccess(res, 200, 'Election retrieved', election);
+  sendSuccess(res, 200, 'Election retrieved', stripCandidateAccounts(election));
 });
 
 export const updateElection = asyncHandler(async (req: Request, res: Response) => {
@@ -72,5 +73,5 @@ export const listElections = asyncHandler(async (req: Request, res: Response) =>
   const adminId = req.query.adminId as string | undefined;
 
   const result = await electionService.listElections(adminId, page, limit);
-  sendSuccess(res, 200, 'Elections retrieved', result);
+  sendSuccess(res, 200, 'Elections retrieved', stripCandidateAccounts(result));
 });

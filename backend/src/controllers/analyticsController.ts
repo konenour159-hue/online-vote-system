@@ -17,6 +17,22 @@ export const getSystemStats = asyncHandler(async (req: Request, res: Response) =
   sendSuccess(res, 200, 'System statistics retrieved', stats);
 });
 
+export const getMyCandidacies = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw new ValidationError('User not authenticated');
+  }
+  const result = await analyticsService.getMyCandidacies(req.user.userId);
+  sendSuccess(res, 200, 'Candidacy results retrieved', result);
+});
+
+export const getAllActivity = asyncHandler(async (req: Request, res: Response) => {
+  const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 50, 1), 200);
+  const action = typeof req.query.action === 'string' && req.query.action ? req.query.action : undefined;
+
+  const result = await analyticsService.getAllActivity(limit, action);
+  sendSuccess(res, 200, 'Activity log retrieved', result);
+});
+
 export const getUserActivityLog = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw new ValidationError('User not authenticated');

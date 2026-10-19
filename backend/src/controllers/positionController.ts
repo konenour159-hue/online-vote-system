@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/index.js';
 import { positionService } from '../services/index.js';
 import { sendSuccess } from '../utils/response.js';
+import { stripCandidateAccounts } from '../utils/publicData.js';
 import { ValidationError } from '../utils/errors.js';
 import { z } from 'zod';
 
@@ -39,7 +40,7 @@ export const createPosition = asyncHandler(async (req: Request, res: Response) =
 export const getPosition = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const position = await positionService.getPosition(id);
-  sendSuccess(res, 200, 'Position retrieved', position);
+  sendSuccess(res, 200, 'Position retrieved', stripCandidateAccounts(position));
 });
 
 export const updatePosition = asyncHandler(async (req: Request, res: Response) => {
@@ -59,5 +60,5 @@ export const deletePosition = asyncHandler(async (req: Request, res: Response) =
 export const listPositionsByElection = asyncHandler(async (req: Request, res: Response) => {
   const { electionId } = req.params;
   const positions = await positionService.listPositionsByElection(electionId);
-  sendSuccess(res, 200, 'Positions retrieved', positions);
+  sendSuccess(res, 200, 'Positions retrieved', stripCandidateAccounts(positions));
 });

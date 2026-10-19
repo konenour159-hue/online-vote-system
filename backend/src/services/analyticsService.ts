@@ -40,16 +40,20 @@ export class AnalyticsService {
       totalVoters,
       totalVotes,
       voterTurnout,
-      positions: election.positions.map((position) => ({
-        positionId: position.id,
-        positionTitle: position.title,
-        candidates: position.candidates.map((candidate) => ({
-          candidateId: candidate.id,
-          candidateName: candidate.name,
-          votes: candidate.votes.length,
-          percentage: totalVotes > 0 ? (candidate.votes.length / totalVotes) * 100 : 0
-        }))
-      }))
+      positions: election.positions.map((position) => {
+        // Le pourcentage se calcule sur les voix exprimées pour CE poste, pas sur tous les bulletins du scrutin.
+        const positionTotal = position.candidates.reduce((sum, c) => sum + c.votes.length, 0);
+        return {
+          positionId: position.id,
+          positionTitle: position.title,
+          candidates: position.candidates.map((candidate) => ({
+            candidateId: candidate.id,
+            candidateName: candidate.name,
+            votes: candidate.votes.length,
+            percentage: positionTotal > 0 ? (candidate.votes.length / positionTotal) * 100 : 0
+          }))
+        };
+      })
     };
   }
 
@@ -61,6 +65,62 @@ export class AnalyticsService {
     });
 
     return logs;
+  }
+
+  /** Journal d'activité de tous les utilisateurs, du plus récent au plus ancien. Sans mot de passe ni donnée de vote. */
+  async getAllActivity(limit = 50, action?: string) {
+    const where = action ? { action } : {};
+    const [items, total] = await Promise.all([
+      prisma.auditLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        select: {
+          id: true,
+          action: true,
+          ipAddress: true,
+          createdAt: true,
+          user: { select: { firstName: true, lastName: true, email: true } }
+        }
+      }),
+      prisma.auditLog.count({ where })
+    ]);
+    return { items, total };
+  }
+
+  /**
+   * Résultats personnels d'un candidat : uniquement SES voix, en pourcentage des électeurs inscrits.
+   * Aucun total de votes, aucune participation et aucun chiffre d'un autre candidat n'est renvoyé :
+   * dans une course à deux, ils permettraient de déduire le score de l'adversaire.
+   */
+  async getMyCandidacies(userId: string) {
+    const candidacies = await prisma.candidate.findMany({
+      where: { userId },
+      include: {
+        _count: { select: { votes: true } },
+        position: {
+          include: {
+            election: { select: { id: true, title: true, status: true, startDate: true, endDate: true } }
+          }
+        }
+      }
+    });
+
+    return Promise.all(
+      candidacies.map(async (c) => {
+        const registered = await prisma.voter.count({ where: { electionId: c.position.election.id } });
+        const votes = c._count.votes;
+        return {
+          candidateId: c.id,
+          candidateName: c.name,
+          positionTitle: c.position.title,
+          election: c.position.election,
+          votes,
+          registeredVoters: registered,
+          percentageOfRegistered: registered > 0 ? (votes / registered) * 100 : 0
+        };
+      })
+    );
   }
 
   async getSystemStats() {

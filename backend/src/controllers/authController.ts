@@ -5,6 +5,7 @@ import { sendSuccess, sendError } from '../utils/response.js';
 import { ValidationError } from '../utils/errors.js';
 import { validate, validateEmail, validatePassword } from '../utils/validation.js';
 import { z } from 'zod';
+import { recordAudit } from '../utils/audit.js';
 
 const registerSchema = z.object({
   email: validateEmail,
@@ -29,6 +30,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = validate(loginSchema, req.body);
 
   const result = await authService.login(email, password);
+  recordAudit(result.user.id, 'USER_LOGIN', req);
 
   // Set refresh token in HTTP-only cookie
   res.cookie('refreshToken', result.refreshToken, {
@@ -71,6 +73,7 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
   }
 
   await authService.logout(req.user.userId);
+  recordAudit(req.user.userId, 'USER_LOGOUT', req);
 
   res.clearCookie('refreshToken');
   sendSuccess(res, 200, 'Logout successful');

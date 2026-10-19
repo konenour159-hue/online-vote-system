@@ -7,7 +7,8 @@ export class CandidateService {
     positionId: string,
     bio?: string,
     photo?: string,
-    order: number = 1
+    order: number = 1,
+    userId?: string
   ) {
     // Verify position exists
     const position = await prisma.position.findUnique({
@@ -24,7 +25,8 @@ export class CandidateService {
         positionId,
         bio,
         photo,
-        order
+        order,
+        userId
       }
     });
 

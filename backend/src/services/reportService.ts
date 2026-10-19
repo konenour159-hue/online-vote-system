@@ -40,16 +40,20 @@ export class ReportService {
         voterTurnout: ((votedVoters / totalVoters) * 100).toFixed(2) + '%',
         totalVotes
       },
-      results: election.positions.map((position) => ({
-        position: position.title,
-        candidates: position.candidates
-          .map((candidate) => ({
-            name: candidate.name,
-            votes: candidate.votes.length,
-            percentage: totalVotes > 0 ? ((candidate.votes.length / totalVotes) * 100).toFixed(2) + '%' : '0%'
-          }))
-          .sort((a, b) => b.votes - a.votes)
-      }))
+      results: election.positions.map((position) => {
+        const positionTotal = position.candidates.reduce((sum, c) => sum + c.votes.length, 0);
+        return {
+          position: position.title,
+          candidates: position.candidates
+            .map((candidate) => ({
+              name: candidate.name,
+              votes: candidate.votes.length,
+              percentage:
+                positionTotal > 0 ? ((candidate.votes.length / positionTotal) * 100).toFixed(2) + '%' : '0%'
+            }))
+            .sort((a, b) => b.votes - a.votes)
+        };
+      })
     };
   }
 
