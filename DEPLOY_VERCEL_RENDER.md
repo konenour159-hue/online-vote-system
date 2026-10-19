@@ -14,7 +14,8 @@ Browser ──► Vercel (PWA files) ──/api/*──► Render (Express + Pos
    service (`genies-vote-api`) and the database (`genies-vote-db`) and generates the two JWT secrets.
 2. When asked for `CORS_ORIGIN`, enter your future Vercel address (for example `https://genies-vote.vercel.app`).
    You can change it later in the service's Environment tab.
-3. Wait for the first deploy. Check `https://<your-api>.onrender.com/health` returns `{"status":"OK",...}`.
+3. Wait for the first deploy (the build runs `npm install --include=dev`: Render sets `NODE_ENV=production`, which would otherwise skip
+   the `prisma` and `typescript` packages the build needs). Check `https://<your-api>.onrender.com/health` returns `{"status":"OK",...}`.
    The start command runs `prisma migrate deploy`, so the tables are created automatically.
 4. Note the API address, for example `https://genies-vote-api.onrender.com`.
 

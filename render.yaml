@@ -11,9 +11,11 @@ services:
     runtime: node
     region: frankfurt
     plan: free # ATTENTION : se met en veille après inactivité (premier appel lent). Plan payant conseillé en production.
-    buildCommand: npm install && npx prisma generate --schema backend/prisma/schema.prisma && npm run build --workspace=backend
-    # Applique les migrations puis démarre l'API.
-    startCommand: npx prisma migrate deploy --schema backend/prisma/schema.prisma && npm run start --workspace=backend
+    # Render fixe NODE_ENV=production : sans --include=dev, prisma et typescript ne seraient pas installés
+    # et `npx` téléchargerait la dernière version de Prisma, incompatible avec ce schéma (Prisma 5).
+    buildCommand: npm install --include=dev && npm run build --workspace=backend
+    # Applique les migrations (avec la version de Prisma du projet) puis démarre l'API.
+    startCommand: npm run migrate:deploy --workspace=backend && npm run start --workspace=backend
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
