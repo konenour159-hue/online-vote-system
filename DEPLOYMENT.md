@@ -1,5 +1,8 @@
 # 🚀 Development & Deployment Guide
 
+> **Quick path:** to publish the PWA on Vercel with the API on Render, follow [DEPLOY_VERCEL_RENDER.md](DEPLOY_VERCEL_RENDER.md).
+
+
 ## Local Development Setup
 
 ### Prerequisites

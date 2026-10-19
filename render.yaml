@@ -1,0 +1,36 @@
+# Blueprint Render : l'API Express + la base PostgreSQL.
+# Le site (PWA) est hébergé séparément sur Vercel et appelle cette API via la redirection /api de vercel.json.
+databases:
+  - name: genies-vote-db
+    region: frankfurt # proche du public français
+    plan: free # ATTENTION : la base gratuite expire au bout de 30 jours. Prenez un plan payant pour de vrais scrutins.
+
+services:
+  - type: web
+    name: genies-vote-api
+    runtime: node
+    region: frankfurt
+    plan: free # ATTENTION : se met en veille après inactivité (premier appel lent). Plan payant conseillé en production.
+    buildCommand: npm install && npx prisma generate --schema backend/prisma/schema.prisma && npm run build --workspace=backend
+    # Applique les migrations puis démarre l'API.
+    startCommand: npx prisma migrate deploy --schema backend/prisma/schema.prisma && npm run start --workspace=backend
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 20
+      - key: DATABASE_URL
+        fromDatabase:
+          name: genies-vote-db
+          property: connectionString
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      # Vercel puis Render devant l'API : 2 proxys pour lire la vraie adresse IP du visiteur.
+      - key: TRUST_PROXY
+        value: 2
+      # Adresse du site sur Vercel, par exemple https://genies-vote.vercel.app
+      - key: CORS_ORIGIN
+        sync: false
