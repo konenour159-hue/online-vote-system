@@ -1,61 +1,37 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
-import { Card, CardHeader, CardTitle, CardContent } from './Card';
+import { CountUp } from '../motion/CountUp';
 
-export const StatsCard: React.FC<{ title: string; value: string | number; icon: string }> = ({
+export const StatsCard: React.FC<{ title: string; value: number; suffix?: string; loading?: boolean }> = ({
   title,
   value,
-  icon
-}) => {
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-lg">{title}</CardTitle>
-          <span className="text-3xl">{icon}</span>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <p className="text-3xl font-bold">{value}</p>
-      </CardContent>
-    </Card>
-  );
-};
+  suffix,
+  loading
+}) => (
+  <div className="border-l-2 border-spark pl-4">
+    <p className="font-display text-4xl font-extrabold tabular-nums">
+      {loading ? <span aria-label="Chargement">…</span> : <CountUp value={value} suffix={suffix} />}
+    </p>
+    <p className="mt-1 text-sm text-muted">{title}</p>
+  </div>
+);
 
-export const ElectionStats: React.FC<{ electionId: string }> = ({ electionId }) => {
+export const ElectionStats: React.FC<{ electionId: string; live?: boolean }> = ({ electionId, live }) => {
   const { data: stats, isLoading } = useQuery({
     queryKey: ['election-stats', electionId],
-    queryFn: async () => {
-      const response = await api.get(`/analytics/election/${electionId}/stats`);
-      return response.data.data;
-    }
+    queryFn: async () => (await api.get(`/analytics/election/${electionId}/stats`)).data.data,
+    refetchInterval: live ? 5000 : false
   });
 
-  if (isLoading) return <div>Loading stats...</div>;
+  if (isLoading) return <p className="text-muted">Chargement des chiffres…</p>;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <StatsCard
-        title="Total Voters"
-        value={stats?.totalVoters || 0}
-        icon="🗳️"
-      />
-      <StatsCard
-        title="Total Votes"
-        value={stats?.totalVotes || 0}
-        icon="✅"
-      />
-      <StatsCard
-        title="Voter Turnout"
-        value={stats?.voterTurnout?.toFixed(2) + '%' || '0%'}
-        icon="📊"
-      />
-      <StatsCard
-        title="Positions"
-        value={stats?.positions?.length || 0}
-        icon="📋"
-      />
+    <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+      <StatsCard title="Électeurs inscrits" value={stats?.totalVoters ?? 0} />
+      <StatsCard title="Bulletins déposés" value={stats?.totalVotes ?? 0} />
+      <StatsCard title="Participation" value={Math.round(Number(stats?.voterTurnout ?? 0))} suffix=" %" />
+      <StatsCard title="Postes" value={stats?.positions?.length ?? 0} />
     </div>
   );
 };

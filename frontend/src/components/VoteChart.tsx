@@ -1,32 +1,22 @@
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Card, CardHeader, CardTitle, CardContent } from './Card';
+import { prefersReducedMotion } from '../motion/gsap';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 interface VoteChartProps {
-  data: Array<{
-    name: string;
-    votes: number;
-  }>;
+  data: Array<{ name: string; votes: number }>;
 }
 
-export const VoteChart: React.FC<VoteChartProps> = ({ data }) => {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Vote Distribution</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="votes" fill="#000" />
-          </BarChart>
-        </ResponsiveContainer>
-      </CardContent>
-    </Card>
-  );
-};
+export const VoteChart: React.FC<VoteChartProps> = ({ data }) => (
+  <ResponsiveContainer width="100%" height={280}>
+    <BarChart data={data} margin={{ left: -16 }}>
+      <CartesianGrid vertical={false} stroke="rgb(var(--line))" />
+      <XAxis dataKey="name" tickLine={false} axisLine={false} stroke="rgb(var(--muted))" />
+      <YAxis allowDecimals={false} tickLine={false} axisLine={false} stroke="rgb(var(--muted))" />
+      <Tooltip
+        cursor={{ fill: 'rgb(var(--ink) / 0.06)' }}
+        contentStyle={{ background: 'rgb(var(--surface))', border: '1px solid rgb(var(--line))', borderRadius: 6, color: 'rgb(var(--ink))' }}
+      />
+      <Bar dataKey="votes" name="Voix" isAnimationActive={!prefersReducedMotion()} fill="rgb(var(--smoke))" radius={[4, 4, 0, 0]} />
+    </BarChart>
+  </ResponsiveContainer>
+);

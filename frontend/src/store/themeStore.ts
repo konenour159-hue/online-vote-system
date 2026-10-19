@@ -7,7 +7,9 @@ interface ThemeState {
 }
 
 export const useThemeStore = create<ThemeState>((set) => ({
-  isDark: localStorage.getItem('theme') === 'dark',
+  isDark:
+    localStorage.getItem('theme') === 'dark' ||
+    (!localStorage.getItem('theme') && window.matchMedia?.('(prefers-color-scheme: dark)').matches),
   toggleTheme: () => {
     set((state) => {
       const newIsDark = !state.isDark;

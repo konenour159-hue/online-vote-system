@@ -1,24 +1,36 @@
-import React from 'react';
+import React, { forwardRef, useId } from 'react';
+import { FadeIn } from '../motion/FadeIn';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
 }
 
-export const Input: React.FC<InputProps> = ({ label, error, className, ...props }) => {
+export const Input = forwardRef<HTMLInputElement, InputProps>(({ label, error, className, id, ...props }, ref) => {
+  const autoId = useId();
+  const inputId = id || autoId;
   return (
     <div className="w-full">
-      {label && <label className="block text-sm font-medium mb-2">{label}</label>}
+      {label && (
+        <label htmlFor={inputId} className="mb-1.5 block text-sm font-semibold">
+          {label}
+        </label>
+      )}
       <input
-        className={`
-          w-full px-3 py-2 border rounded-lg
-          focus:outline-none focus:ring-2 focus:ring-black
-          ${error ? 'border-red-500' : 'border-gray-300'}
-          ${className || ''}
-        `}
+        ref={ref}
+        id={inputId}
+        aria-invalid={!!error}
+        aria-describedby={error ? `${inputId}-error` : undefined}
+        className={`h-11 w-full rounded-md border bg-surface px-3 text-base placeholder:text-muted/70
+          ${error ? 'border-bad' : 'border-line hover:border-smoke'} ${className || ''}`}
         {...props}
       />
-      {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+      {error && (
+        <FadeIn id={`${inputId}-error`} className="mt-1.5 text-sm text-bad">
+          {error}
+        </FadeIn>
+      )}
     </div>
   );
-};
+});
+Input.displayName = 'Input';

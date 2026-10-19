@@ -27,7 +27,10 @@ export default defineConfig({
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['recharts', 'lucide-react']
+          charts: ['recharts'],
+          icons: ['lucide-react'],
+          motion: ['gsap', '@gsap/react'],
+          three: ['three']
         }
       }
     }
