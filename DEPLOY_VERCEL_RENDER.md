@@ -2,6 +2,8 @@
 
 ## How the product works
 
+0. **Organisers sign up** on `/signup`. The super administrator approves or refuses each request (menu **Inscriptions**)
+   before the person can sign in; the applicant is notified by e-mail. Sign-ups can be closed with one switch.
 1. The **administrator** signs in, creates a vote (a question and a list of candidates) and opens it.
 2. They share **one link with the audience**. Each person enters a name and an e-mail address, types the 6-digit code
    received by e-mail, and votes once. No account is needed.
@@ -48,10 +50,15 @@ block SMTP, so the project uses the **Brevo** HTTP API (free up to 300 e-mails a
    - `EMAIL_PROVIDER` = `brevo`
    - `BREVO_API_KEY` = the key
    - `EMAIL_FROM` = the sender address you validated
+   - `PUBLIC_APP_URL` = your site address (for example `https://genies-vote.vercel.app`), so the e-mails contain the
+     right links
 5. Save. Render redeploys. Without these settings the API refuses to start sending codes in production (it never
    falls back to printing codes in the logs there).
 
 ## 3. Create the first administrator (no demo data)
+
+Only the **first** account is created this way. Every other organiser requests access on the site and is approved from
+the **Inscriptions** page.
 
 Never run `npm run seed` in production: it creates demo accounts with a known password.
 
