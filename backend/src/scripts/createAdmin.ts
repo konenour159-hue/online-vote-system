@@ -24,7 +24,7 @@ const main = async (): Promise<void> => {
   const hashed = await bcrypt.hash(password, 12);
 
   if (existing) {
-    await prisma.user.update({ where: { email }, data: { password: hashed, roleId: roles.SUPER_ADMIN, isActive: true } });
+    await prisma.user.update({ where: { email }, data: { password: hashed, roleId: roles.SUPER_ADMIN, isActive: true, approvalStatus: 'APPROVED' } });
     console.log(`Compte existant mis à jour : ${email} est maintenant SUPER_ADMIN.`);
   } else {
     await prisma.user.create({

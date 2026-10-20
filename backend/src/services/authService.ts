@@ -1,48 +1,12 @@
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../config/database.js';
 import { config } from '../config/env.js';
-import { AuthenticationError, ConflictError, NotFoundError, ValidationError } from '../utils/errors.js';
+import { AuthenticationError, UserError } from '../utils/errors.js';
 import { JwtPayload } from '../types/index.js';
 
 export class AuthService {
-  async register(email: string, firstName: string, lastName: string, password: string) {
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    });
-
-    if (existingUser) {
-      throw new ConflictError('Email already registered');
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    // Get voter role
-    const voterRole = await prisma.role.findUnique({
-      where: { name: 'VOTER' }
-    });
-
-    if (!voterRole) {
-      throw new ValidationError('Voter role not found');
-    }
-
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        email,
-        firstName,
-        lastName,
-        password: hashedPassword,
-        roleId: voterRole.id
-      },
-      include: { role: true }
-    });
-
-    return this.formatUser(user);
-  }
-
   async login(email: string, password: string) {
     // Find user
     const user = await prisma.user.findUnique({
@@ -60,14 +24,18 @@ export class AuthService {
       throw new AuthenticationError('Invalid email or password');
     }
 
+    // Le mot de passe est correct : on peut maintenant dire pourquoi l'accès est refusé sans aider un inconnu.
+    this.assertCanSignIn(user);
+
     // Update last login
     await prisma.user.update({
       where: { id: user.id },
       data: { lastLogin: new Date() }
     });
 
-    // Generate tokens
+    // Generate tokens (le jeton de renouvellement est conservé pour pouvoir le vérifier et le révoquer)
     const tokens = this.generateTokens(user.id, user.email, user.roleId);
+    await this.storeRefreshToken(user.id, tokens.refreshToken);
 
     return {
       user: this.formatUser(user),
@@ -79,29 +47,28 @@ export class AuthService {
     try {
       const decoded = jwt.verify(token, config.jwt_refresh_secret) as JwtPayload;
 
-      const refreshToken = await prisma.refreshToken.findUnique({
-        where: { token }
-      });
-
-      if (!refreshToken) {
+      const stored = await prisma.refreshToken.findUnique({ where: { token } });
+      if (!stored) {
         throw new AuthenticationError('Refresh token not found');
       }
-
-      if (new Date() > refreshToken.expiresAt) {
+      if (new Date() > stored.expiresAt) {
+        await prisma.refreshToken.delete({ where: { id: stored.id } }).catch(() => undefined);
         throw new AuthenticationError('Refresh token expired');
       }
 
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.userId }
-      });
-
+      const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
       if (!user) {
-        throw new NotFoundError('User');
+        throw new AuthenticationError('Invalid refresh token');
       }
+      this.assertCanSignIn(user);
 
-      return this.generateTokens(user.id, user.email, user.roleId);
+      // Rotation : un jeton de renouvellement ne sert qu'une fois.
+      await prisma.refreshToken.delete({ where: { id: stored.id } });
+      const tokens = this.generateTokens(user.id, user.email, user.roleId);
+      await this.storeRefreshToken(user.id, tokens.refreshToken);
+      return tokens;
     } catch (error) {
-      if (error instanceof AuthenticationError) throw error;
+      if (error instanceof AuthenticationError || error instanceof UserError) throw error;
       throw new AuthenticationError('Invalid refresh token');
     }
   }
@@ -109,6 +76,25 @@ export class AuthService {
   async logout(userId: string) {
     await prisma.refreshToken.deleteMany({
       where: { userId }
+    });
+  }
+
+  /** Un compte en attente, refusé ou désactivé ne peut pas ouvrir de session. */
+  private assertCanSignIn(user: { approvalStatus: string; isActive: boolean }) {
+    if (user.approvalStatus === 'PENDING') {
+      throw new UserError(403, 'Votre inscription est en attente de validation par un administrateur. Vous recevrez un e-mail dès qu’elle sera traitée.');
+    }
+    if (user.approvalStatus === 'REJECTED') {
+      throw new UserError(403, 'Votre demande d’accès n’a pas été acceptée. Contactez l’administrateur de la plateforme.');
+    }
+    if (!user.isActive) {
+      throw new UserError(403, 'Ce compte est désactivé. Contactez l’administrateur de la plateforme.');
+    }
+  }
+
+  private async storeRefreshToken(userId: string, token: string) {
+    await prisma.refreshToken.create({
+      data: { token, userId, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) }
     });
   }
 
@@ -120,7 +106,9 @@ export class AuthService {
     });
 
     const refreshToken = jwt.sign(payload, config.jwt_refresh_secret, {
-      expiresIn: config.jwt_refresh_expiry as jwt.SignOptions['expiresIn']
+      expiresIn: config.jwt_refresh_expiry as jwt.SignOptions['expiresIn'],
+      // Identifiant unique : deux jetons émis dans la même seconde ne doivent jamais être identiques
+      jwtid: crypto.randomUUID()
     });
 
     return { accessToken, refreshToken };

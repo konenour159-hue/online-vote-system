@@ -15,6 +15,8 @@ export const config = {
   email_from: process.env.EMAIL_FROM || '',
   email_from_name: process.env.EMAIL_FROM_NAME || 'Genies Vote',
   brevo_api_key: process.env.BREVO_API_KEY || '',
+  // Adresse publique du site (liens dans les e-mails), par exemple https://genies-vote.vercel.app
+  public_app_url: (process.env.PUBLIC_APP_URL || '').replace(/\/$/, ''),
   smtp_host: process.env.SMTP_HOST || '',
   smtp_port: parseInt(process.env.SMTP_PORT || '587', 10),
   smtp_user: process.env.SMTP_USER || '',

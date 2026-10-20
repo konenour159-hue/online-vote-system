@@ -18,6 +18,10 @@ export const authorize = (allowedRoles: string[]) => {
         throw new AuthorizationError('User role not found');
       }
 
+      if (user.approvalStatus !== 'APPROVED' || !user.isActive) {
+        throw new AuthorizationError('Account not approved');
+      }
+
       if (!allowedRoles.includes(user.role.name)) {
         throw new AuthorizationError('Insufficient permissions');
       }

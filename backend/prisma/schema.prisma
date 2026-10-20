@@ -25,6 +25,13 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Inscription d'un organisateur : PENDING (en attente), APPROVED ou REJECTED. Les comptes existants restent APPROVED.
+  approvalStatus String    @default("APPROVED")
+  organisation   String?
+  signupMessage  String?
+  reviewedAt     DateTime?
+  reviewedById   String?
+
   // Relations
   role          Role            @relation(fields: [roleId], references: [id])
   roleId        String
@@ -36,6 +43,7 @@ model User {
 
   @@index([roleId])
   @@index([email])
+  @@index([approvalStatus])
 }
 
 // Role Model
@@ -247,4 +255,11 @@ model PublicVote {
 
   @@index([electionId])
   @@index([candidateId])
+}
+
+// Réglages modifiables depuis l'espace d'administration (par exemple : inscriptions ouvertes ou non).
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }

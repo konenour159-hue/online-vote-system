@@ -85,5 +85,27 @@ export const verificationCodeMail = (to: string, name: string, voteTitle: string
     `<p style="color:#666">Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.</p>`
 });
 
+export const signupRequestMail = (to: string, applicant: string, email: string, organisation: string | null, reviewUrl: string): Mail => ({
+  to,
+  subject: `Nouvelle demande d'inscription : ${applicant}`,
+  text:
+    `${applicant} (${email})${organisation ? `, ${organisation}` : ''} demande un accès organisateur sur Genies Vote.\n\n` +
+    (reviewUrl ? `Pour la valider ou la refuser : ${reviewUrl}\n` : `Connectez-vous à l'espace d'administration, rubrique Inscriptions.\n`),
+  html:
+    `<p><strong>${escapeHtml(applicant)}</strong> (${escapeHtml(email)})${organisation ? `, ${escapeHtml(organisation)}` : ''} demande un accès organisateur sur Genies Vote.</p>` +
+    (reviewUrl ? `<p><a href="${escapeHtml(reviewUrl)}">Valider ou refuser la demande</a></p>` : `<p>Connectez-vous à l'espace d'administration, rubrique Inscriptions.</p>`)
+});
+
+export const signupDecisionMail = (to: string, name: string, approved: boolean, loginUrl: string): Mail => ({
+  to,
+  subject: approved ? 'Votre compte Genies Vote est validé' : "Votre demande d'accès à Genies Vote",
+  text: approved
+    ? `Bonjour ${name},\n\nVotre demande a été acceptée : vous pouvez maintenant vous connecter et créer des votes.\n${loginUrl ? `Connexion : ${loginUrl}\n` : ''}`
+    : `Bonjour ${name},\n\nVotre demande d'accès n'a pas été acceptée. Pour en savoir plus, contactez l'administrateur de la plateforme.`,
+  html: approved
+    ? `<p>Bonjour ${escapeHtml(name)},</p><p>Votre demande a été acceptée : vous pouvez maintenant vous connecter et créer des votes.</p>${loginUrl ? `<p><a href="${escapeHtml(loginUrl)}">Se connecter</a></p>` : ''}`
+    : `<p>Bonjour ${escapeHtml(name)},</p><p>Votre demande d'accès n'a pas été acceptée. Pour en savoir plus, contactez l'administrateur de la plateforme.</p>`
+});
+
 const escapeHtml = (value: string): string =>
   value.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
