@@ -1,5 +1,18 @@
 # Deploying Genies Vote: Vercel (PWA) + Render (API and database)
 
+## How the product works
+
+1. The **administrator** signs in, creates a vote (a question and a list of candidates) and opens it.
+2. They share **one link with the audience**. Each person enters a name and an e-mail address, types the 6-digit code
+   received by e-mail, and votes once. No account is needed.
+3. Each **candidate** gets **a private link** showing only their own live percentage.
+4. The administrator follows everything live; the audience sees the results when the vote is closed.
+
+The ballot is secret: it stores only the chosen candidate, with no date and no link to the voter. The voter list only
+records that someone has voted, to prevent a second vote.
+
+## Architecture
+
 The website is a static React app installable as a PWA, hosted on **Vercel**. The Express API and PostgreSQL run on
 **Render**. Vercel forwards `/api/*` to Render (see `vercel.json`), so the browser only ever talks to one address:
 no CORS, and the session cookie stays first-party.
@@ -22,7 +35,23 @@ Browser ──► Vercel (PWA files) ──/api/*──► Render (Express + Pos
 > **Free plans are for trying it out.** The free web service sleeps after inactivity (the first request takes about
 > a minute) and the free database **expires after 30 days**. Use paid plans for real elections.
 
-## 2. Create the first administrator (no demo data)
+## 2. Set up the e-mail that sends the voters' codes
+
+Voters confirm their e-mail address with a 6-digit code, so the API must be able to send e-mail. Render's free plans
+block SMTP, so the project uses the **Brevo** HTTP API (free up to 300 e-mails a day, so roughly 300 voters a day):
+
+1. Create a free account at <https://www.brevo.com>.
+2. **Senders, Domains & Dedicated IPs → Senders → Add a sender.** Use an address you control and confirm the e-mail
+   Brevo sends you. (Better deliverability: authenticate your own domain there, otherwise codes may land in spam.)
+3. **SMTP & API → API Keys → Generate a new API key.** Copy it.
+4. On Render, open `genies-vote-api` → **Environment** and set:
+   - `EMAIL_PROVIDER` = `brevo`
+   - `BREVO_API_KEY` = the key
+   - `EMAIL_FROM` = the sender address you validated
+5. Save. Render redeploys. Without these settings the API refuses to start sending codes in production (it never
+   falls back to printing codes in the logs there).
+
+## 3. Create the first administrator (no demo data)
 
 Never run `npm run seed` in production: it creates demo accounts with a known password.
 
@@ -41,7 +70,7 @@ npm run admin:create --workspace=backend
 (On paid plans you can run the same last command in the service's **Shell** tab instead.)
 The password needs 8+ characters with an uppercase letter, a lowercase letter, a digit and a symbol.
 
-## 3. Deploy the website on Vercel
+## 4. Deploy the website on Vercel
 
 1. Edit `vercel.json`: replace `https://REMPLACEZ-PAR-VOTRE-API.onrender.com` with your Render API address, commit and
    push.
@@ -51,9 +80,11 @@ The password needs 8+ characters with an uppercase letter, a lowercase letter, a
    `vercel.json` only allows that.
 4. Deploy. Then put the final Vercel address in Render's `CORS_ORIGIN` (if you used a placeholder).
 
-## 4. Check it works
+## 5. Check it works
 
-- Open the site, sign in with the administrator you created.
+- Open the site, sign in with the administrator you created, and create a vote: question, candidates, then **Open**.
+- Open the audience link in a private window and vote with your own e-mail: you should receive a code within seconds.
+- Open a candidate's private link: it shows only that candidate's live percentage.
 - In Chrome or Edge the address bar offers **Install**; on phones use *Add to Home Screen*. The footer also shows an
   **Installer l'application** link when the browser allows it.
 - Switch the phone to airplane mode and reopen the app: the screens load, a notice says you are offline, and the vote

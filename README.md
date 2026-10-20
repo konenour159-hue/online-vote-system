@@ -1,50 +1,31 @@
-# 🗳️ Online Voting System
+# 🗳️ Genies Vote
 
-A secure, scalable, and modern online voting platform designed for organizations, colleges, universities, companies, and clubs.
+A simple, secure voting platform by Genies. An organiser creates a vote, shares **one link with the audience**, and gives
+each candidate **a private link** to follow their own score live. The interface is in French and installable as a PWA.
 
-## 📋 Overview
+## How it works
 
-The Online Voting System is a comprehensive voting solution that enables organizations to conduct secure, transparent, and efficient elections. With role-based access control, real-time vote counting, and comprehensive audit logs, this system ensures the integrity of the voting process.
+1. The **administrator** signs in, creates a vote (a question and its candidates) and opens it.
+2. The **audience** opens the shared link, enters a name and an e-mail address, types the 6-digit code received by
+   e-mail, and votes once. No account is needed.
+3. Each **candidate** has a private link showing only their own live percentage, never the others'.
+4. The administrator follows participation and results live. The audience sees the results once the vote is closed.
 
-## ✨ Key Features
+## Key features
 
-### Security
-- ✅ JWT Authentication with Refresh Tokens
-- ✅ HTTP-only Cookie Storage
-- ✅ bcrypt Password Hashing
-- ✅ SQL Injection Protection
-- ✅ XSS & CSRF Protection
-- ✅ Rate Limiting
-- ✅ Role-Based Access Control (RBAC)
-- ✅ Audit Logs & Activity Tracking
+- **Secret ballot:** a ballot stores only the chosen candidate, with no date and no link to the voter. The voter list
+  records only *that* someone voted, to prevent a second vote.
+- **One vote per person:** e-mail verification code (hashed, valid 10 minutes, 5 attempts), atomic double-vote protection.
+- **Admin space:** create, open and close votes, edit candidates before opening, copy links, QR code, live results,
+  participant list, regenerate a candidate's link, delete a vote.
+- **Audit log:** logins and every action on a vote.
+- **PWA:** installable, opens offline; votes and results always go through the network and are never cached.
+- **Security:** JWT with refresh cookie, bcrypt, rate limiting per step, strict Content-Security-Policy, self-hosted fonts.
+- **Accessible:** WCAG-checked, keyboard and screen-reader friendly, responsive down to phones, reduced-motion support.
 
-### Admin Features
-- 📊 Comprehensive Dashboard
-- 📝 Election Management (Create, Edit, Delete)
-- 👥 Voter Management
-- 📤 CSV Import for Bulk Voter Registration
-- 📸 Candidate Photo Upload
-- 📈 Live Statistics & Vote Monitoring
-- 📥 Export Results (PDF & CSV)
-- ⏰ Election Scheduling
-- 📅 Election Status Management
+## Deploying
 
-### Voter Features
-- 🔐 Secure Authentication
-- 🗳️ Secret Ballot Voting
-- ✔️ Duplicate Vote Prevention
-- 📜 Vote History
-- 👤 Profile Management
-- 🔄 Password Change
-
-### Election Management
-- 🎯 Multiple Elections Support
-- 💼 Position-based Voting
-- 🎯 Multiple Candidates per Position
-- ⏱️ Election Time Scheduling
-- 🔒 Secret Ballot Implementation
-- 🧮 Automatic Vote Counting
-- 📊 Real-time Vote Display (without individual vote revelation)
+See [DEPLOY_VERCEL_RENDER.md](DEPLOY_VERCEL_RENDER.md) (website on Vercel, API and PostgreSQL on Render, e-mail via Brevo).
 
 ## 🛠️ Tech Stack
 

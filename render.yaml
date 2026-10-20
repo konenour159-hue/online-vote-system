@@ -36,3 +36,14 @@ services:
       # Adresse du site sur Vercel, par exemple https://genies-vote.vercel.app
       - key: CORS_ORIGIN
         sync: false
+      # Envoi des codes de vérification par e-mail. Les services gratuits de Render bloquent le SMTP :
+      # on utilise l'API HTTP de Brevo (gratuit jusqu'à 300 e-mails par jour). Voir DEPLOY_VERCEL_RENDER.md.
+      - key: EMAIL_PROVIDER
+        value: brevo
+      - key: BREVO_API_KEY
+        sync: false
+      # Adresse expéditrice, à faire valider chez Brevo (Senders & IP → Senders)
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_FROM_NAME
+        value: Genies Vote
