@@ -6,7 +6,9 @@ import { useThemeStore } from '../store/themeStore';
 import { Button } from './Button';
 import { LinkButton } from './LinkButton';
 import { Logo } from './Logo';
+import { useQuery } from '@tanstack/react-query';
 import { useRole } from '../hooks/useRole';
+import { accountService } from '../services/accountApi';
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `inline-flex min-h-10 shrink-0 items-center border-b-2 text-sm font-semibold ${
@@ -16,6 +18,14 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
 /** Liens de navigation : affichés en ligne dans l'en-tête (écran large) et sur une seconde ligne (téléphone). */
 const NavItems: React.FC = () => {
   const role = useRole();
+  const isSuper = role === 'SUPER_ADMIN';
+  const { data: pending } = useQuery({
+    queryKey: ['signups-pending'],
+    queryFn: async () => (await accountService.listSignups('PENDING')).counts.pending,
+    enabled: isSuper,
+    refetchInterval: 30000,
+    retry: false
+  });
   return (
     <>
       <NavLink to="/dashboard" className={navClass}>
@@ -24,6 +34,19 @@ const NavItems: React.FC = () => {
       {role === 'SUPER_ADMIN' && (
         <NavLink to="/admin" end className={navClass}>
           Administration
+        </NavLink>
+      )}
+      {isSuper && (
+        <NavLink to="/admin/signups" className={navClass}>
+          Inscriptions
+          {!!pending && (
+            <>
+              <span className="ml-2 inline-flex min-w-5 items-center justify-center rounded-full bg-spark px-1.5 text-xs font-bold text-night" aria-hidden="true">
+                {pending}
+              </span>
+              <span className="sr-only"> ({pending} en attente)</span>
+            </>
+          )}
         </NavLink>
       )}
       {role === 'SUPER_ADMIN' && (

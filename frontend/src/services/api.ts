@@ -25,30 +25,35 @@ api.interceptors.request.use(
   (error: AxiosError) => Promise.reject(error)
 );
 
+// Renouvellement de session : le jeton de renouvellement est dans un cookie httpOnly, que le navigateur envoie tout seul.
+// Une seule demande de renouvellement à la fois, même si plusieurs requêtes échouent en même temps.
+let refreshing: Promise<string> | null = null;
+const refreshAccessToken = async (): Promise<string> => {
+  const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {}, { withCredentials: true });
+  const { accessToken } = response.data.data;
+  localStorage.setItem('accessToken', accessToken);
+  return accessToken;
+};
+
 // Response interceptor
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as any;
+    const isAuthCall = /\/auth\/(login|refresh|signup)/.test(originalRequest?.url ?? '');
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Un 401 sur une page protégée : on tente de renouveler la session une fois, sinon retour à la connexion.
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthCall && localStorage.getItem('accessToken')) {
       originalRequest._retry = true;
-
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (refreshToken) {
-          const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {
-            refreshToken
-          });
-          const { accessToken } = response.data.data;
-          localStorage.setItem('accessToken', accessToken);
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-          return api(originalRequest);
-        }
-      } catch (err) {
+        refreshing = refreshing ?? refreshAccessToken().finally(() => (refreshing = null));
+        const accessToken = await refreshing;
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        return api(originalRequest);
+      } catch {
         localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
+        localStorage.removeItem('user');
+        if (!window.location.pathname.startsWith('/login')) window.location.href = '/login';
       }
     }
 

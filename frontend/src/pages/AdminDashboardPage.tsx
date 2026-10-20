@@ -26,7 +26,12 @@ const actionLabels: Record<string, string> = {
   VOTE_OPENED: 'Vote ouvert',
   VOTE_CLOSED: 'Vote clos',
   VOTE_DELETED: 'Vote supprimé',
-  CANDIDATE_LINK_RESET: 'Lien candidat régénéré'
+  CANDIDATE_LINK_RESET: 'Lien candidat régénéré',
+  SIGNUP_REQUESTED: 'Demande d’inscription',
+  SIGNUP_APPROVED: 'Inscription validée',
+  SIGNUP_REJECTED: 'Accès refusé ou retiré',
+  SIGNUPS_OPENED: 'Inscriptions ouvertes',
+  SIGNUPS_CLOSED: 'Inscriptions fermées'
 };
 
 export const AdminDashboardPage: React.FC = () => {

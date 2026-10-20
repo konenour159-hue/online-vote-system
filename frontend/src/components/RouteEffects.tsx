@@ -4,11 +4,13 @@ import { useLocation } from 'react-router-dom';
 const titles: Array<[string, string]> = [
   ['/admin/votes/new', 'Créer un vote'],
   ['/admin/votes/', 'Gérer le vote'],
+  ['/admin/signups', 'Inscriptions'],
   ['/admin/activity', 'Activité'],
   ['/admin', 'Administration'],
   ['/dashboard', 'Mes votes'],
   ['/v/', 'Voter'],
   ['/c/', 'Votre page candidat'],
+  ['/signup', 'Demander un accès'],
   ['/login', 'Se connecter']
 ];
 

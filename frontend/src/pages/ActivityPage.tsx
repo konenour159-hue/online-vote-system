@@ -19,7 +19,12 @@ const actionLabels: Record<string, string> = {
   VOTE_OPENED: 'Vote ouvert',
   VOTE_CLOSED: 'Vote clos',
   VOTE_DELETED: 'Vote supprimé',
-  CANDIDATE_LINK_RESET: 'Lien candidat régénéré'
+  CANDIDATE_LINK_RESET: 'Lien candidat régénéré',
+  SIGNUP_REQUESTED: 'Demande d’inscription',
+  SIGNUP_APPROVED: 'Inscription validée',
+  SIGNUP_REJECTED: 'Accès refusé ou retiré',
+  SIGNUPS_OPENED: 'Inscriptions ouvertes',
+  SIGNUPS_CLOSED: 'Inscriptions fermées'
 };
 
 const filters = [
@@ -27,7 +32,8 @@ const filters = [
   { value: 'USER_LOGIN', label: 'Connexions' },
   { value: 'USER_LOGOUT', label: 'Déconnexions' },
   { value: 'VOTE_OPENED', label: 'Votes ouverts' },
-  { value: 'VOTE_CLOSED', label: 'Votes clos' }
+  { value: 'VOTE_CLOSED', label: 'Votes clos' },
+  { value: 'SIGNUP_REQUESTED', label: 'Demandes d’inscription' }
 ];
 
 export const ActivityPage: React.FC = () => {

@@ -9,6 +9,8 @@ import { LandingPage } from './pages/LandingPage';
 // Chargement à la demande : chaque page n'est téléchargée que lorsqu'on y va.
 const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })));
+const SignupPage = lazy(() => import('./pages/SignupPage').then((m) => ({ default: m.SignupPage })));
+const AdminSignupsPage = lazy(() => import('./pages/AdminSignupsPage').then((m) => ({ default: m.AdminSignupsPage })));
 const VoteFormPage = lazy(() => import('./pages/VoteFormPage').then((m) => ({ default: m.VoteFormPage })));
 const VoteDetailPage = lazy(() => import('./pages/VoteDetailPage').then((m) => ({ default: m.VoteDetailPage })));
 const VotePage = lazy(() => import('./pages/VotePage').then((m) => ({ default: m.VotePage })));
@@ -38,6 +40,8 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/admin/signups" element={<PrivateRoute><AdminSignupsPage /></PrivateRoute>} />
         <Route
           path="/dashboard"
           element={

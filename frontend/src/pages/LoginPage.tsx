@@ -3,7 +3,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useQuery } from '@tanstack/react-query';
 import { authService } from '../services/authService';
+import { accountService } from '../services/accountApi';
 import { useAuthStore } from '../store/authStore';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
@@ -23,6 +25,7 @@ export const LoginPage: React.FC = () => {
   const { pathname } = useLocation();
   const { setUser, setAuthenticated } = useAuthStore();
   const [error, setError] = useState('');
+  const signupStatus = useQuery({ queryKey: ['signup-status'], queryFn: accountService.signupStatus, retry: false });
   const {
     register,
     handleSubmit,
@@ -38,7 +41,9 @@ export const LoginPage: React.FC = () => {
       navigate('/dashboard');
     } catch (err: any) {
       setError(
-        err.response
+        err.response?.data?.userFacing
+          ? err.response.data.message
+          : err.response
           ? err.response.status === 429
             ? 'Trop de tentatives. Patientez quelques minutes avant de réessayer.'
             : 'E-mail ou mot de passe incorrect.'
@@ -92,6 +97,14 @@ export const LoginPage: React.FC = () => {
               Se connecter
             </Button>
           </form>
+          {signupStatus.data?.open && (
+            <p className="mt-6 text-sm text-muted">
+              Pas encore de compte ?{' '}
+              <Link to="/signup" className="font-semibold text-ink underline underline-offset-4">
+                Demander un accès organisateur
+              </Link>
+            </p>
+          )}
         </div>
       </main>
     </div>

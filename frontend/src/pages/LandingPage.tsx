@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useRef } from 'react';
 import { Header } from '../components/Header';
 import { Layout } from '../components/Layout';
+import { Link } from 'react-router-dom';
 import { LinkButton } from '../components/LinkButton';
 import { DemoBallot } from '../components/DemoBallot';
 // three.js est chargé à part : le texte et le bouton s'affichent sans l'attendre.
@@ -80,6 +81,11 @@ export const LandingPage: React.FC = () => {
               <LinkButton to={isAuthenticated ? '/dashboard' : '/login'} size="lg">
                 {isAuthenticated ? 'Voir mes votes' : 'Se connecter pour créer un vote'}
               </LinkButton>
+              {!isAuthenticated && (
+                <Link to="/signup" className="inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-4">
+                  Demander un accès organisateur
+                </Link>
+              )}
               <span className="text-sm text-muted">Essayez d’abord le bulletin d’exemple.</span>
             </div>
           </div>
