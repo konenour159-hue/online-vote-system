@@ -11,9 +11,9 @@ import { gsap, SplitText, useGSAP } from '../motion/gsap';
 import { dur, ease, FULL_MOTION, scroll, stagger } from '../motion/tokens';
 
 const steps = [
-  { title: 'Se connecter', text: 'Utilisez l’adresse e-mail que l’organisateur de votre groupe a enregistrée pour vous.' },
-  { title: 'Remplir votre bulletin', text: 'Choisissez un candidat par poste. Vous pouvez changer d’avis tant que vous n’avez pas validé.' },
-  { title: 'Valider', text: 'Une fois validé, votre bulletin est définitif. Impossible de voter deux fois dans le même scrutin.' }
+  { title: 'Créez votre vote', text: 'Vous saisissez la question et la liste des candidats, puis vous ouvrez le vote quand vous êtes prêt.' },
+  { title: 'Partagez le lien', text: 'Votre public ouvre le lien, confirme son adresse e-mail avec un code et vote une seule fois. Chaque candidat reçoit son propre lien privé.' },
+  { title: 'Suivez en direct', text: 'Vous voyez les résultats en direct, et chaque candidat suit son propre score. Le public découvre les résultats à la clôture.' }
 ];
 
 export const LandingPage: React.FC = () => {
@@ -74,12 +74,11 @@ export const LandingPage: React.FC = () => {
               Choisissez le responsable de votre groupe.
             </h1>
             <p data-hero-text className="mt-6 max-w-[46ch] text-lg text-muted">
-              Genies a conçu cette plateforme pour que chaque groupe élise son responsable en toute équité.
-              Connectez-vous, remplissez votre bulletin et consultez les résultats dès la clôture du scrutin.
+              Genies vous permet d’organiser un vote en quelques minutes : vous créez la liste des candidats, vous partagez un lien avec votre public, et chaque candidat suit son score avec son lien privé.
             </p>
             <div data-hero-cta className="mt-8 flex flex-wrap items-center gap-4">
               <LinkButton to={isAuthenticated ? '/dashboard' : '/login'} size="lg">
-                {isAuthenticated ? 'Voir les scrutins' : 'Se connecter pour voter'}
+                {isAuthenticated ? 'Voir mes votes' : 'Se connecter pour créer un vote'}
               </LinkButton>
               <span className="text-sm text-muted">Essayez d’abord le bulletin d’exemple.</span>
             </div>
@@ -90,7 +89,7 @@ export const LandingPage: React.FC = () => {
         </section>
 
         <section className="mt-24 grid gap-10 border-t border-line pt-12 md:grid-cols-[1fr_2fr]">
-          <h2 className="text-3xl font-bold md:text-4xl">Voter en trois étapes</h2>
+          <h2 className="text-3xl font-bold md:text-4xl">Comment ça marche</h2>
           <ol data-steps className="divide-y divide-line">
             {steps.map((s, i) => (
               <li key={s.title} data-step className="grid grid-cols-[2.5rem_1fr] gap-4 py-5 first:pt-0">
@@ -111,8 +110,7 @@ export const LandingPage: React.FC = () => {
           <div>
             <h2 className="max-w-[20ch] text-3xl font-bold md:text-4xl">Votre choix reste secret.</h2>
             <p className="mt-4 max-w-[58ch] opacity-85">
-              Les organisateurs voient les totaux et la participation, jamais qui a voté pour qui. Les mots de passe
-              sont chiffrés, les sessions expirent et chaque action d’administration est journalisée.
+              Les organisateurs voient qui a participé, jamais pour qui chacun a voté : le bulletin n’est relié ni au nom ni à l’adresse e-mail. Chaque personne ne vote qu’une fois, les codes de vérification expirent en 10 minutes et chaque action d’administration est journalisée.
             </p>
           </div>
           <NeuralNetwork className="h-auto w-full text-white/80" />

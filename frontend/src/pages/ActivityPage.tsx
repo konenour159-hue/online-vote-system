@@ -15,16 +15,19 @@ const PAGE_SIZE = 50;
 const actionLabels: Record<string, string> = {
   USER_LOGIN: 'Connexion',
   USER_LOGOUT: 'Déconnexion',
-  CANDIDATE_ACCOUNT_LINKED: 'Compte candidat lié',
-  CANDIDATE_ACCOUNT_UNLINKED: 'Compte candidat délié'
+  VOTE_CREATED: 'Vote créé',
+  VOTE_OPENED: 'Vote ouvert',
+  VOTE_CLOSED: 'Vote clos',
+  VOTE_DELETED: 'Vote supprimé',
+  CANDIDATE_LINK_RESET: 'Lien candidat régénéré'
 };
 
 const filters = [
   { value: '', label: 'Tout' },
   { value: 'USER_LOGIN', label: 'Connexions' },
   { value: 'USER_LOGOUT', label: 'Déconnexions' },
-  { value: 'CANDIDATE_ACCOUNT_LINKED', label: 'Comptes liés' },
-  { value: 'CANDIDATE_ACCOUNT_UNLINKED', label: 'Comptes déliés' }
+  { value: 'VOTE_OPENED', label: 'Votes ouverts' },
+  { value: 'VOTE_CLOSED', label: 'Votes clos' }
 ];
 
 export const ActivityPage: React.FC = () => {
@@ -57,7 +60,7 @@ export const ActivityPage: React.FC = () => {
         </Link>
         <h1 className="mt-6 text-4xl font-extrabold md:text-5xl">Activité</h1>
         <p className="mt-3 max-w-[56ch] text-muted">
-          Les connexions, déconnexions et changements de comptes candidats de tous les utilisateurs, de la plus récente à la plus ancienne. La liste se
+          Les connexions et les actions sur les votes (création, ouverture, clôture) de tous les organisateurs, de la plus récente à la plus ancienne. La liste se
           met à jour toutes les 30 secondes.
         </p>
 

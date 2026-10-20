@@ -9,12 +9,10 @@ import { LandingPage } from './pages/LandingPage';
 // Chargement à la demande : chaque page n'est téléchargée que lorsqu'on y va.
 const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })));
-const ElectionPage = lazy(() => import('./pages/ElectionPage').then((m) => ({ default: m.ElectionPage })));
-const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage })));
-const CandidatesAdminPage = lazy(() =>
-  import('./pages/CandidatesAdminPage').then((m) => ({ default: m.CandidatesAdminPage }))
-);
-const CandidacyPage = lazy(() => import('./pages/CandidacyPage').then((m) => ({ default: m.CandidacyPage })));
+const VoteFormPage = lazy(() => import('./pages/VoteFormPage').then((m) => ({ default: m.VoteFormPage })));
+const VoteDetailPage = lazy(() => import('./pages/VoteDetailPage').then((m) => ({ default: m.VoteDetailPage })));
+const VotePage = lazy(() => import('./pages/VotePage').then((m) => ({ default: m.VotePage })));
+const CandidatePage = lazy(() => import('./pages/CandidatePage').then((m) => ({ default: m.CandidatePage })));
 const ActivityPage = lazy(() => import('./pages/ActivityPage').then((m) => ({ default: m.ActivityPage })));
 const AdminDashboardPage = lazy(() =>
   import('./pages/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage }))
@@ -48,11 +46,11 @@ function App() {
             </PrivateRoute>
           }
         />
-        <Route path="/elections/:id" element={<PrivateRoute><ElectionPage /></PrivateRoute>} />
-        <Route path="/results/:id" element={<PrivateRoute><AnalyticsPage /></PrivateRoute>} />
         <Route path="/admin" element={<PrivateRoute><AdminDashboardPage /></PrivateRoute>} />
-        <Route path="/admin/candidates" element={<PrivateRoute><CandidatesAdminPage /></PrivateRoute>} />
-        <Route path="/candidacy" element={<PrivateRoute><CandidacyPage /></PrivateRoute>} />
+        <Route path="/admin/votes/new" element={<PrivateRoute><VoteFormPage /></PrivateRoute>} />
+        <Route path="/admin/votes/:id" element={<PrivateRoute><VoteDetailPage /></PrivateRoute>} />
+        <Route path="/v/:token" element={<VotePage />} />
+        <Route path="/c/:token" element={<CandidatePage />} />
         <Route path="/admin/activity" element={<PrivateRoute><ActivityPage /></PrivateRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

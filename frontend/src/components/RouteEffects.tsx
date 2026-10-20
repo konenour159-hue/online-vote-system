@@ -2,13 +2,13 @@ import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 
 const titles: Array<[string, string]> = [
-  ['/admin/candidates', 'Candidats'],
+  ['/admin/votes/new', 'Créer un vote'],
+  ['/admin/votes/', 'Gérer le vote'],
   ['/admin/activity', 'Activité'],
   ['/admin', 'Administration'],
-  ['/candidacy', 'Ma candidature'],
-  ['/results/', 'Résultats'],
-  ['/elections/', 'Bulletin de vote'],
-  ['/dashboard', 'Scrutins'],
+  ['/dashboard', 'Mes votes'],
+  ['/v/', 'Voter'],
+  ['/c/', 'Votre page candidat'],
   ['/login', 'Se connecter']
 ];
 

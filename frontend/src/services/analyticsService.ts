@@ -1,33 +1,8 @@
 import api from './api';
 
 export const analyticsService = {
-  getElectionStats: async (electionId: string) => {
-    const response = await api.get(`/analytics/election/${electionId}/stats`);
-    return response.data.data;
-  },
-
   getSystemStats: async () => {
     const response = await api.get('/analytics/system/stats');
-    return response.data.data;
-  },
-
-  getElectionReport: async (electionId: string) => {
-    const response = await api.get(`/analytics/election/${electionId}/report`);
-    return response.data.data;
-  },
-
-  exportReportAsPDF: async (electionId: string) => {
-    const response = await api.get(`/analytics/election/${electionId}/report/pdf`);
-    return response.data;
-  },
-
-  exportReportAsCSV: async (electionId: string) => {
-    const response = await api.get(`/analytics/election/${electionId}/report/csv`);
-    return response.data;
-  },
-
-  getMyCandidacies: async () => {
-    const response = await api.get('/analytics/me/candidacy');
     return response.data.data;
   },
 

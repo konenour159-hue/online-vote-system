@@ -59,7 +59,7 @@ export const LoginPage: React.FC = () => {
         <div>
           <p className="font-display text-5xl font-extrabold leading-[1.05] text-white">Votre groupe.<br />Votre voix.</p>
           <p className="mt-5 max-w-[34ch] text-white/75">
-            Connectez-vous pour voter pour le responsable de votre groupe ou consulter les résultats d’un scrutin clos.
+            Espace des organisateurs : créez un vote, partagez le lien avec votre public et suivez les résultats en direct.
           </p>
         </div>
         <p className="text-sm text-white/60">Plateforme de vote proposée par Genies</p>
@@ -71,7 +71,7 @@ export const LoginPage: React.FC = () => {
             <Logo height={22} />
           </Link>
           <h1 className="text-4xl font-extrabold">Se connecter</h1>
-          <p className="mt-2 text-muted">Utilisez l’e-mail et le mot de passe fournis par votre groupe.</p>
+          <p className="mt-2 text-muted">Utilisez l’e-mail et le mot de passe de votre compte organisateur. Pour voter, utilisez le lien que l’on vous a envoyé.</p>
 
           {error && (
             <FadeIn role="alert" className="mt-6 rounded-md border border-bad/40 bg-bad/10 p-3 text-sm text-bad">

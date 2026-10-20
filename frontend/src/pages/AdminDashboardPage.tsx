@@ -5,16 +5,28 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Header } from '../components/Header';
 import { Layout } from '../components/Layout';
-import { StatsCard } from '../components/StatsCard';
 import { analyticsService } from '../services/analyticsService';
 import { FadeIn } from '../motion/FadeIn';
+import { CountUp } from '../motion/CountUp';
 import { useFreshRows } from '../motion/useFreshRows';
+
+const Stat: React.FC<{ title: string; value: number; loading: boolean }> = ({ title, value, loading }) => (
+  <div className="border-l-2 border-spark pl-4">
+    <p className="font-display text-4xl font-extrabold tabular-nums">
+      {loading ? <span aria-label="Chargement">…</span> : <CountUp value={value} />}
+    </p>
+    <p className="mt-1 text-sm text-muted">{title}</p>
+  </div>
+);
 
 const actionLabels: Record<string, string> = {
   USER_LOGIN: 'Connexion',
   USER_LOGOUT: 'Déconnexion',
-  CANDIDATE_ACCOUNT_LINKED: 'Compte candidat lié',
-  CANDIDATE_ACCOUNT_UNLINKED: 'Compte candidat délié'
+  VOTE_CREATED: 'Vote créé',
+  VOTE_OPENED: 'Vote ouvert',
+  VOTE_CLOSED: 'Vote clos',
+  VOTE_DELETED: 'Vote supprimé',
+  CANDIDATE_LINK_RESET: 'Lien candidat régénéré'
 };
 
 export const AdminDashboardPage: React.FC = () => {
@@ -44,9 +56,9 @@ export const AdminDashboardPage: React.FC = () => {
           </FadeIn>
         ) : (
           <div className="mt-10 grid grid-cols-1 gap-8 sm:grid-cols-3">
-            <StatsCard title="Électeurs" value={systemStats?.totalUsers ?? 0} loading={!systemStats} />
-            <StatsCard title="Scrutins" value={systemStats?.totalElections ?? 0} loading={!systemStats} />
-            <StatsCard title="Bulletins déposés" value={systemStats?.totalVotes ?? 0} loading={!systemStats} />
+            <Stat title="Votes créés" value={systemStats?.totalElections ?? 0} loading={!systemStats} />
+            <Stat title="Participants vérifiés" value={systemStats?.totalParticipants ?? 0} loading={!systemStats} />
+            <Stat title="Bulletins déposés" value={systemStats?.totalVotes ?? 0} loading={!systemStats} />
           </div>
         )}
 

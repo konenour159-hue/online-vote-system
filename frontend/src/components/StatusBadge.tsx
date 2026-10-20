@@ -1,9 +1,9 @@
 import React from 'react';
 
 const map: Record<string, { label: string; dot: string }> = {
-  DRAFT: { label: 'Pas encore ouvert', dot: 'bg-muted' },
-  ACTIVE: { label: 'Ouvert au vote', dot: 'bg-ok' },
-  COMPLETED: { label: 'Clos', dot: 'bg-smoke' },
+  DRAFT: { label: 'Brouillon', dot: 'bg-muted' },
+  ACTIVE: { label: 'Ouvert', dot: 'bg-ok' },
+  COMPLETED: { label: 'Terminé', dot: 'bg-smoke' },
   CANCELLED: { label: 'Annulé', dot: 'bg-bad' }
 };
 

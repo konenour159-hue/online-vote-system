@@ -6,8 +6,7 @@ import { useThemeStore } from '../store/themeStore';
 import { Button } from './Button';
 import { LinkButton } from './LinkButton';
 import { Logo } from './Logo';
-import { useMyCandidacies } from '../hooks/useMyCandidacies';
-import { useIsAdmin, useRole } from '../hooks/useRole';
+import { useRole } from '../hooks/useRole';
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `inline-flex min-h-10 shrink-0 items-center border-b-2 text-sm font-semibold ${
@@ -16,25 +15,12 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
 
 /** Liens de navigation : affichés en ligne dans l'en-tête (écran large) et sur une seconde ligne (téléphone). */
 const NavItems: React.FC = () => {
-  const { data: candidacies } = useMyCandidacies();
-  const isCandidate = (candidacies?.length ?? 0) > 0;
-  const isAdmin = useIsAdmin();
   const role = useRole();
   return (
     <>
       <NavLink to="/dashboard" className={navClass}>
-        Scrutins
+        Mes votes
       </NavLink>
-      {isAdmin && (
-        <NavLink to="/admin/candidates" className={navClass}>
-          Candidats
-        </NavLink>
-      )}
-      {isCandidate && (
-        <NavLink to="/candidacy" className={navClass}>
-          Ma candidature
-        </NavLink>
-      )}
       {role === 'SUPER_ADMIN' && (
         <NavLink to="/admin" end className={navClass}>
           Administration
