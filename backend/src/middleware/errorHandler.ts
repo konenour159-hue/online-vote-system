@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { AppError, ServerError } from '../utils/errors.js';
+import { AppError, ServerError, UserError } from '../utils/errors.js';
 import { sendError } from '../utils/response.js';
 import { logger } from '../utils/logger.js';
 
@@ -12,7 +12,7 @@ export const errorHandler = (
   logger.error('Error:', err);
 
   if (err instanceof AppError) {
-    sendError(res, err.statusCode, err.message);
+    sendError(res, err.statusCode, err.message, undefined, err instanceof UserError);
     return;
   }
 

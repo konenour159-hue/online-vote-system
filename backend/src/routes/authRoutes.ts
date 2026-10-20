@@ -1,11 +1,10 @@
 import { Router } from 'express';
-import { register, login, refreshToken, logout, getCurrentUser } from '../controllers/index.js';
+import { login, refreshToken, logout, getCurrentUser } from '../controllers/index.js';
 import { authenticate, authRateLimiter, asyncHandler } from '../middleware/index.js';
 
 const router = Router();
 
 // Public routes
-router.post('/register', authRateLimiter, asyncHandler(register));
 router.post('/login', authRateLimiter, asyncHandler(login));
 router.post('/refresh', asyncHandler(refreshToken));
 

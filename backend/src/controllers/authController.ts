@@ -7,23 +7,9 @@ import { validate, validateEmail, validatePassword } from '../utils/validation.j
 import { z } from 'zod';
 import { recordAudit } from '../utils/audit.js';
 
-const registerSchema = z.object({
-  email: validateEmail,
-  firstName: z.string().min(2, 'First name must be at least 2 characters'),
-  lastName: z.string().min(2, 'Last name must be at least 2 characters'),
-  password: validatePassword
-});
-
 const loginSchema = z.object({
   email: validateEmail,
   password: z.string().min(1, 'Password is required')
-});
-
-export const register = asyncHandler(async (req: Request, res: Response) => {
-  const { email, firstName, lastName, password } = validate(registerSchema, req.body);
-
-  const user = await authService.register(email, firstName, lastName, password);
-  sendSuccess(res, 201, 'User registered successfully', user);
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {

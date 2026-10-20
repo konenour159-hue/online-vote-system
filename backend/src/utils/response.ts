@@ -19,12 +19,14 @@ export const sendError = (
   res: Response,
   statusCode: number,
   message: string,
-  error?: string
+  error?: string,
+  userFacing = false
 ): Response => {
-  const response: ApiResponse<null> = {
+  const response: ApiResponse<null> & { userFacing?: boolean } = {
     success: false,
     message,
-    ...(error && { error })
+    ...(error && { error }),
+    ...(userFacing && { userFacing: true })
   };
   return res.status(statusCode).json(response);
 };

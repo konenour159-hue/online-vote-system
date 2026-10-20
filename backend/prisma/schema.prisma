@@ -33,7 +33,6 @@ model User {
   auditLogs     AuditLog[]
   refreshTokens RefreshToken[]
   voters        Voter[]
-  candidacies   Candidate[]     @relation("CandidateAccount")
 
   @@index([roleId])
   @@index([email])
@@ -57,16 +56,20 @@ model Election {
   endDate     DateTime
   status      String   @default("DRAFT") // DRAFT, ACTIVE, COMPLETED, CANCELLED
   isPublic    Boolean  @default(false)
+  // Jeton aléatoire du lien partagé avec le public : /v/<publicToken>
+  publicToken String   @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Relations
-  admin     ElectionAdmin @relation(fields: [adminId], references: [id])
-  adminId   String
-  positions Position[]
-  votes     Vote[]
-  voters    Voter[]
-  auditLogs AuditLog[]
+  admin        ElectionAdmin @relation(fields: [adminId], references: [id])
+  adminId      String
+  positions    Position[]
+  votes        Vote[]
+  voters       Voter[]
+  auditLogs    AuditLog[]
+  participants Participant[]
+  publicVotes  PublicVote[]
 
   @@index([adminId])
   @@index([status])
@@ -115,15 +118,14 @@ model Candidate {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  // Compte utilisateur du candidat : lui permet de suivre ses propres résultats
-  user   User?   @relation("CandidateAccount", fields: [userId], references: [id], onDelete: SetNull)
-  userId String?
+  // Jeton aléatoire du lien privé du candidat : /c/<accessToken> (il y suit son propre score)
+  accessToken String @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
 
   // Relations
-  votes Vote[]
+  votes       Vote[]
+  publicVotes PublicVote[]
 
   @@index([positionId])
-  @@index([userId])
 }
 
 // Vote Model
@@ -196,4 +198,53 @@ model AuditLog {
   @@index([userId])
   @@index([electionId])
   @@index([createdAt])
+}
+
+// --- Vote par lien public (sans compte) -------------------------------------------------
+
+// Une personne de l'audience, identifiée par son e-mail pour un vote donné.
+// Elle sert UNIQUEMENT à empêcher de voter deux fois : elle n'est jamais reliée à un bulletin.
+model Participant {
+  id         String    @id @default(cuid())
+  election   Election  @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  electionId String
+  name       String
+  email      String // en minuscules
+  verifiedAt DateTime?
+  hasVoted   Boolean   @default(false)
+  votedAt    DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  codes VerificationCode[]
+
+  @@unique([electionId, email])
+  @@index([electionId])
+}
+
+// Code à 6 chiffres envoyé par e-mail ; seul son empreinte est conservée.
+model VerificationCode {
+  id            String      @id @default(cuid())
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  participantId String
+  codeHash      String
+  expiresAt     DateTime
+  attempts      Int         @default(0)
+  consumedAt    DateTime?
+  createdAt     DateTime    @default(now())
+
+  @@index([participantId])
+}
+
+// Un bulletin. Volontairement SANS date, SANS lien vers un participant : le vote reste secret.
+model PublicVote {
+  // uuid aléatoire (et non cuid, qui contient l'heure) : l'ordre des bulletins ne révèle rien
+  id          String    @id @default(uuid())
+  election    Election  @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  electionId  String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  candidateId String
+
+  @@index([electionId])
+  @@index([candidateId])
 }

@@ -1,5 +1,4 @@
 export { authenticate } from './authentication.js';
-export { authorizeResultsAccess } from './resultsAccess.js';
 export { authorize } from './authorization.js';
 export { errorHandler } from './errorHandler.js';
 export { asyncHandler } from './asyncHandler.js';

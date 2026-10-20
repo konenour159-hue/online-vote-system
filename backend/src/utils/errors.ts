@@ -8,6 +8,17 @@ export class AppError extends Error {
   }
 }
 
+/**
+ * Erreur dont le message est rédigé en français POUR l'utilisateur final : le site l'affiche telle quelle.
+ * Les autres erreurs (techniques, en anglais) sont remplacées côté site par un message générique.
+ */
+export class UserError extends AppError {
+  constructor(statusCode: number, message: string) {
+    super(statusCode, message);
+    Object.setPrototypeOf(this, UserError.prototype);
+  }
+}
+
 export class ValidationError extends AppError {
   constructor(message: string) {
     super(400, message);

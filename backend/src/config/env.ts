@@ -10,6 +10,11 @@ export const config = {
   jwt_refresh_secret: process.env.JWT_REFRESH_SECRET || '',
   jwt_access_expiry: process.env.JWT_ACCESS_EXPIRY || '15m',
   jwt_refresh_expiry: process.env.JWT_REFRESH_EXPIRY || '7d',
+  // Envoi des codes de vérification par e-mail : « console » (développement), « brevo » (API HTTP) ou « smtp »
+  email_provider: (process.env.EMAIL_PROVIDER || (process.env.NODE_ENV === 'production' ? '' : 'console')).toLowerCase(),
+  email_from: process.env.EMAIL_FROM || '',
+  email_from_name: process.env.EMAIL_FROM_NAME || 'Genies Vote',
+  brevo_api_key: process.env.BREVO_API_KEY || '',
   smtp_host: process.env.SMTP_HOST || '',
   smtp_port: parseInt(process.env.SMTP_PORT || '587', 10),
   smtp_user: process.env.SMTP_USER || '',
