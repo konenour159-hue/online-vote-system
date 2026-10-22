@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../config/database.js';
 import { UserError, NotFoundError } from '../utils/errors.js';
 import { phaseOf, tally } from './publicVoteService.js';
+import { isMailConfigured } from '../utils/mailer.js';
 
 export interface Admin {
   id: string;
@@ -22,6 +23,7 @@ export const createVoteSchema = z.object({
   title: z.string().trim().min(3, 'Le titre doit contenir au moins 3 caractères.').max(120, 'Le titre est trop long.'),
   description: z.string().trim().max(1000, 'La description est trop longue.').optional().or(z.literal('')),
   endDate: futureDate,
+  accessMode: z.enum(['APPROVAL', 'EMAIL_CODE']).optional(),
   candidates: z
     .array(candidateSchema)
     .min(2, 'Ajoutez au moins 2 candidats.')
@@ -32,8 +34,16 @@ export const createVoteSchema = z.object({
 export const updateVoteSchema = z.object({
   title: z.string().trim().min(3).max(120).optional(),
   description: z.string().trim().max(1000).optional().or(z.literal('')),
-  endDate: futureDate.optional()
+  endDate: futureDate.optional(),
+  accessMode: z.enum(['APPROVAL', 'EMAIL_CODE']).optional()
 });
+
+/** Le mode « code par e-mail » n'est proposé que si le serveur sait envoyer des e-mails. */
+const assertModeAvailable = (mode: string | undefined) => {
+  if (mode === 'EMAIL_CODE' && !isMailConfigured()) {
+    throw new UserError(409, 'L’envoi d’e-mails n’est pas configuré sur ce serveur : utilisez la validation par l’organisateur.');
+  }
+};
 
 export { candidateSchema };
 
@@ -67,6 +77,12 @@ export const adminVoteService = {
       _count: { _all: true }
     });
     const verifiedBy = new Map(verified.map((v) => [v.electionId, v._count._all]));
+    const pendingRows = await prisma.participant.groupBy({
+      by: ['electionId'],
+      where: { electionId: { in: elections.map((e) => e.id) }, status: 'PENDING' },
+      _count: { _all: true }
+    });
+    const pendingBy = new Map(pendingRows.map((v) => [v.electionId, v._count._all]));
     return elections.map((e) => ({
       id: e.id,
       title: e.title,
@@ -77,6 +93,8 @@ export const adminVoteService = {
       candidatesCount: e.positions[0]?._count.candidates ?? 0,
       participantsCount: verifiedBy.get(e.id) ?? 0,
       votesCount: e._count.publicVotes,
+      pendingCount: pendingBy.get(e.id) ?? 0,
+      accessMode: e.accessMode,
       publicToken: e.publicToken
     }));
   },
@@ -88,7 +106,7 @@ export const adminVoteService = {
       prisma.participant.findMany({
         where: { electionId: id },
         orderBy: { createdAt: 'desc' },
-        select: { id: true, name: true, email: true, verifiedAt: true, hasVoted: true, votedAt: true }
+        select: { id: true, name: true, email: true, status: true, requestMessage: true, createdAt: true, decidedAt: true, verifiedAt: true, hasVoted: true, votedAt: true }
       }),
       tally(id)
     ]);
@@ -101,6 +119,9 @@ export const adminVoteService = {
       phase: phaseOf(election),
       startDate: election.startDate,
       endDate: election.endDate,
+      accessMode: election.accessMode,
+      emailAvailable: isMailConfigured(),
+      pendingCount: participants.filter((p) => p.status === 'PENDING').length,
       publicToken: election.publicToken,
       totalVotes: total,
       verifiedParticipants: participants.filter((p) => p.verifiedAt).length,
@@ -117,6 +138,7 @@ export const adminVoteService = {
   },
 
   async create(admin: Admin, input: z.infer<typeof createVoteSchema>) {
+    assertModeAvailable(input.accessMode);
     const profile = await prisma.electionAdmin.upsert({
       where: { userId: admin.id },
       update: {},
@@ -128,6 +150,7 @@ export const adminVoteService = {
         description: input.description || null,
         startDate: new Date(),
         endDate: input.endDate,
+        accessMode: input.accessMode ?? 'APPROVAL',
         status: 'DRAFT',
         adminId: profile.id,
         positions: {
@@ -146,10 +169,19 @@ export const adminVoteService = {
   },
 
   async update(admin: Admin, id: string, input: z.infer<typeof updateVoteSchema>) {
-    await loadOwned(admin, id);
+    const current = await loadOwned(admin, id);
+    if (input.accessMode && input.accessMode !== current.accessMode) {
+      if (current.status !== 'DRAFT') throw new UserError(409, 'Le mode d’accès ne se change plus une fois le vote ouvert.');
+      assertModeAvailable(input.accessMode);
+    }
     const election = await prisma.election.update({
       where: { id },
-      data: { title: input.title, description: input.description === undefined ? undefined : input.description || null, endDate: input.endDate }
+      data: {
+        title: input.title,
+        description: input.description === undefined ? undefined : input.description || null,
+        endDate: input.endDate,
+        accessMode: input.accessMode
+      }
     });
     return { id: election.id };
   },
@@ -174,6 +206,41 @@ export const adminVoteService = {
     await loadOwned(admin, id);
     await prisma.election.delete({ where: { id } }); // supprime aussi participants, codes et bulletins
     return { id };
+  },
+
+  /** Valider une demande d'accès : la personne peut alors voter (sa page continue toute seule). */
+  async approveParticipant(admin: Admin, id: string, participantId: string) {
+    await loadOwned(admin, id);
+    const participant = await prisma.participant.findFirst({ where: { id: participantId, electionId: id } });
+    if (!participant) throw new NotFoundError('Participant');
+    await prisma.participant.update({
+      where: { id: participantId },
+      data: { status: 'APPROVED', verifiedAt: participant.verifiedAt ?? new Date(), decidedAt: new Date() }
+    });
+    return { id: participantId, status: 'APPROVED', name: participant.name };
+  },
+
+  /** Refuser ou retirer l'accès. Impossible une fois que la personne a voté : son bulletin est déjà compté. */
+  async rejectParticipant(admin: Admin, id: string, participantId: string) {
+    await loadOwned(admin, id);
+    const participant = await prisma.participant.findFirst({ where: { id: participantId, electionId: id } });
+    if (!participant) throw new NotFoundError('Participant');
+    if (participant.hasVoted) throw new UserError(409, 'Cette personne a déjà voté : son bulletin est compté et ne peut plus être retiré.');
+    await prisma.participant.update({
+      where: { id: participantId },
+      data: { status: 'REJECTED', verifiedAt: null, decidedAt: new Date() }
+    });
+    return { id: participantId, status: 'REJECTED', name: participant.name };
+  },
+
+  async approveAllPending(admin: Admin, id: string) {
+    await loadOwned(admin, id);
+    const now = new Date();
+    const result = await prisma.participant.updateMany({
+      where: { electionId: id, status: 'PENDING' },
+      data: { status: 'APPROVED', verifiedAt: now, decidedAt: now }
+    });
+    return { approved: result.count };
   },
 
   /** Les candidats ne peuvent changer que tant que le vote n'est pas ouvert. */

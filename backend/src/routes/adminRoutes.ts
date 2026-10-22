@@ -8,6 +8,7 @@ const router = Router();
 // Réservé aux administrateurs ; l'appartenance du vote est contrôlée dans le service.
 const adminOnly = [asyncHandler(authenticate), asyncHandler(authorize(['SUPER_ADMIN', 'ELECTION_ADMIN']))];
 
+router.get('/capabilities', ...adminOnly, votes.capabilities);
 router.get('/votes', ...adminOnly, votes.listVotes);
 router.post('/votes', ...adminOnly, votes.createVote);
 router.get('/votes/:id', ...adminOnly, votes.getVote);
@@ -15,6 +16,9 @@ router.put('/votes/:id', ...adminOnly, votes.updateVote);
 router.delete('/votes/:id', ...adminOnly, votes.deleteVote);
 router.post('/votes/:id/open', ...adminOnly, votes.openVote);
 router.post('/votes/:id/close', ...adminOnly, votes.closeVote);
+router.post('/votes/:id/participants/approve-all', ...adminOnly, votes.approveAllPending);
+router.post('/votes/:id/participants/:participantId/approve', ...adminOnly, votes.approveParticipant);
+router.post('/votes/:id/participants/:participantId/reject', ...adminOnly, votes.rejectParticipant);
 router.post('/votes/:id/candidates', ...adminOnly, votes.addCandidate);
 router.put('/votes/:id/candidates/:candidateId', ...adminOnly, votes.updateCandidate);
 router.delete('/votes/:id/candidates/:candidateId', ...adminOnly, votes.removeCandidate);

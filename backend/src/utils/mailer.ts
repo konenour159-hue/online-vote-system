@@ -49,6 +49,20 @@ const sendViaSmtp = async (mail: Mail): Promise<void> => {
   });
 };
 
+/** Vrai si un service d'envoi est réellement utilisable (jamais « console » en production). */
+export const isMailConfigured = (): boolean => {
+  switch (config.email_provider) {
+    case 'brevo':
+      return !!config.brevo_api_key && !!config.email_from;
+    case 'smtp':
+      return !!config.smtp_host && !!config.email_from;
+    case 'console':
+      return config.node_env !== 'production';
+    default:
+      return false;
+  }
+};
+
 /**
  * Envoie un e-mail. En développement le fournisseur « console » écrit le message dans les journaux
  * (le code de vérification y est lisible). En production il est refusé : un fournisseur réel est obligatoire.

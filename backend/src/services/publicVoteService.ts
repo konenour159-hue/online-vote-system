@@ -6,6 +6,9 @@ import { config } from '../config/env.js';
 import { UserError, NotFoundError } from '../utils/errors.js';
 import { sendMail, verificationCodeMail } from '../utils/mailer.js';
 
+const hashToken = (token: string): string => crypto.createHash('sha256').update(token).digest('hex');
+const MAX_PENDING_PER_VOTE = 300;
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CODE_TTL_MS = 10 * 60 * 1000;
 const RESEND_COOLDOWN_MS = 60 * 1000;
@@ -63,6 +66,7 @@ export const publicVoteService = {
       title: election.title,
       description: election.description,
       phase: phaseOf(election),
+      accessMode: election.accessMode as 'APPROVAL' | 'EMAIL_CODE',
       endDate: election.endDate,
       candidates: (election.positions[0]?.candidates ?? []).map((c) => ({
         id: c.id,
@@ -80,6 +84,7 @@ export const publicVoteService = {
     const { name, email } = parsed.data;
 
     const election = await loadElection(token);
+    if (election.accessMode !== 'EMAIL_CODE') throw new UserError(409, 'Ce vote fonctionne avec la validation par l’organisateur : envoyez une demande d’accès.');
     const phase = phaseOf(election);
     if (phase === 'not_open') throw new UserError(409, "Ce vote n'est pas encore ouvert.");
     if (phase === 'closed') throw new UserError(409, 'Ce vote est terminé.');
@@ -128,6 +133,7 @@ export const publicVoteService = {
     const { email, code } = parsed.data;
 
     const election = await loadElection(token);
+    if (election.accessMode !== 'EMAIL_CODE') throw new UserError(409, 'Ce vote fonctionne avec la validation par l’organisateur.');
     if (phaseOf(election) !== 'open') throw new UserError(409, 'Ce vote n’est pas ouvert.');
 
     const invalid = new UserError(400, 'Code incorrect ou expiré. Demandez un nouveau code si besoin.');
@@ -155,7 +161,7 @@ export const publicVoteService = {
 
     await prisma.$transaction([
       prisma.verificationCode.update({ where: { id: record.id }, data: { consumedAt: new Date() } }),
-      prisma.participant.update({ where: { id: participant.id }, data: { verifiedAt: new Date() } })
+      prisma.participant.update({ where: { id: participant.id }, data: { verifiedAt: new Date(), status: 'APPROVED', decidedAt: new Date() } })
     ]);
 
     const session = jwt.sign({ typ: 'vote', pid: participant.id, eid: election.id }, voteSecret, {
@@ -187,13 +193,92 @@ export const publicVoteService = {
 
     await prisma.$transaction(async (tx) => {
       const claimed = await tx.participant.updateMany({
-        where: { id: claims.pid, electionId: election.id, hasVoted: false, verifiedAt: { not: null } },
+        where: { id: claims.pid, electionId: election.id, hasVoted: false, status: 'APPROVED', verifiedAt: { not: null } },
         data: { hasVoted: true, votedAt: new Date() }
       });
-      if (claimed.count !== 1) throw new UserError(409, 'Vous avez déjà voté dans ce vote.');
+      if (claimed.count !== 1) {
+        const current = await tx.participant.findUnique({ where: { id: claims.pid }, select: { hasVoted: true, status: true } });
+        if (current && !current.hasVoted && current.status !== 'APPROVED') {
+          throw new UserError(403, 'Votre accès a été retiré par l’organisateur du vote.');
+        }
+        throw new UserError(409, 'Vous avez déjà voté dans ce vote.');
+      }
       await tx.publicVote.create({ data: { electionId: election.id, candidateId: candidate.id } });
     });
     return { recorded: true };
+  },
+
+  /**
+   * Mode « validation par l'organisateur » : demande d'accès (nom + e-mail non vérifié + mot libre).
+   * Le secret renvoyé reste sur l'appareil du votant ; seule son empreinte est conservée. Il permet de reprendre la
+   * demande sans compte ni e-mail, et n'est donné qu'une fois : une adresse déjà utilisée ne peut pas le récupérer.
+   */
+  async join(token: string, input: unknown) {
+    const parsed = z
+      .object({
+        name: z.string().trim().min(2, 'Saisissez votre nom (2 caractères minimum).').max(80, 'Ce nom est trop long.'),
+        email: z.string().trim().toLowerCase().email('Saisissez une adresse e-mail valide.').max(200),
+        message: z.string().trim().max(200, 'Le message est trop long (200 caractères maximum).').optional().or(z.literal(''))
+      })
+      .safeParse(input);
+    if (!parsed.success) throw new UserError(400, parsed.error.issues[0].message);
+    const { name, email, message } = parsed.data;
+
+    const election = await loadElection(token);
+    if (election.accessMode !== 'APPROVAL') throw new UserError(409, 'Ce vote fonctionne avec un code envoyé par e-mail.');
+    const phase = phaseOf(election);
+    if (phase === 'not_open') throw new UserError(409, "Ce vote n'est pas encore ouvert.");
+    if (phase === 'closed') throw new UserError(409, 'Ce vote est terminé.');
+
+    const existing = await prisma.participant.findUnique({
+      where: { electionId_email: { electionId: election.id, email } },
+      select: { id: true }
+    });
+    if (existing) {
+      throw new UserError(
+        409,
+        "Une demande existe déjà avec cette adresse e-mail. Si c'est la vôtre, reprenez-la depuis l'appareil utilisé la première fois, ou demandez de l'aide à l'organisateur."
+      );
+    }
+    const pending = await prisma.participant.count({ where: { electionId: election.id, status: 'PENDING' } });
+    if (pending >= MAX_PENDING_PER_VOTE) {
+      throw new UserError(429, 'Trop de demandes sont en attente pour ce vote. Réessayez un peu plus tard.');
+    }
+
+    const participantToken = crypto.randomBytes(32).toString('base64url');
+    await prisma.participant.create({
+      data: {
+        electionId: election.id,
+        name,
+        email,
+        status: 'PENDING',
+        requestMessage: message || null,
+        tokenHash: hashToken(participantToken)
+      }
+    });
+    return { participantToken, status: 'PENDING' as const };
+  },
+
+  /**
+   * Suivi de la demande, avec le secret de l'appareil. Dès que l'organisateur a validé, la réponse contient la
+   * session de vote (30 min) : la page continue toute seule vers le choix du candidat.
+   */
+  async getJoinStatus(token: string, input: unknown) {
+    const parsed = z.object({ participantToken: z.string().min(20).max(100) }).safeParse(input);
+    if (!parsed.success) throw new NotFoundError('Participant');
+    const election = await loadElection(token);
+    const participant = await prisma.participant.findFirst({
+      where: { electionId: election.id, tokenHash: hashToken(parsed.data.participantToken) }
+    });
+    if (!participant) throw new NotFoundError('Participant');
+
+    const phase = phaseOf(election);
+    if (participant.hasVoted) return { status: 'VOTED' as const, name: participant.name, phase };
+    if (participant.status === 'APPROVED' && participant.verifiedAt && phase === 'open') {
+      const session = jwt.sign({ typ: 'vote', pid: participant.id, eid: election.id }, voteSecret, { expiresIn: SESSION_TTL });
+      return { status: 'APPROVED' as const, name: participant.name, phase, session };
+    }
+    return { status: participant.status as 'PENDING' | 'APPROVED' | 'REJECTED', name: participant.name, phase };
   },
 
   /** Résultats publics : seulement une fois le vote terminé. */

@@ -64,6 +64,9 @@ model Election {
   endDate     DateTime
   status      String   @default("DRAFT") // DRAFT, ACTIVE, COMPLETED, CANCELLED
   isPublic    Boolean  @default(false)
+  // Comment l'audience est admise : APPROVAL (l'organisateur valide chaque personne, sans e-mail)
+  // ou EMAIL_CODE (code à 6 chiffres envoyé par e-mail, nécessite un service d'envoi)
+  accessMode  String   @default("APPROVAL")
   // Jeton aléatoire du lien partagé avec le public : /v/<publicToken>
   publicToken String   @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   createdAt   DateTime @default(now())
@@ -213,21 +216,28 @@ model AuditLog {
 // Une personne de l'audience, identifiée par son e-mail pour un vote donné.
 // Elle sert UNIQUEMENT à empêcher de voter deux fois : elle n'est jamais reliée à un bulletin.
 model Participant {
-  id         String    @id @default(cuid())
-  election   Election  @relation(fields: [electionId], references: [id], onDelete: Cascade)
-  electionId String
-  name       String
-  email      String // en minuscules
-  verifiedAt DateTime?
-  hasVoted   Boolean   @default(false)
-  votedAt    DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  election       Election  @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  electionId     String
+  name           String
+  email          String // en minuscules
+  // PENDING (demande en attente), APPROVED ou REJECTED. En mode e-mail, la personne est APPROVED dès le code validé.
+  status         String    @default("APPROVED")
+  requestMessage String?
+  // Empreinte du secret gardé par l'appareil du votant : lui permet de reprendre sa demande sans compte ni e-mail
+  tokenHash      String?
+  decidedAt      DateTime?
+  verifiedAt     DateTime?
+  hasVoted       Boolean   @default(false)
+  votedAt        DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   codes VerificationCode[]
 
   @@unique([electionId, email])
   @@index([electionId])
+  @@index([electionId, status])
 }
 
 // Code à 6 chiffres envoyé par e-mail ; seul son empreinte est conservée.

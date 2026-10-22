@@ -4,7 +4,7 @@ import { prisma } from '../config/database.js';
 import { config } from '../config/env.js';
 import { UserError, NotFoundError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
-import { sendMail, signupDecisionMail, signupRequestMail } from '../utils/mailer.js';
+import { isMailConfigured, sendMail, signupDecisionMail, signupRequestMail } from '../utils/mailer.js';
 
 const SETTING_KEY = 'signups_open';
 
@@ -26,6 +26,7 @@ const signupSchema = z.object({
 
 /** Meilleur effort : un e-mail qui échoue ne doit jamais bloquer ni annuler une inscription ou une décision. */
 const tryMail = async (build: () => Parameters<typeof sendMail>[0]): Promise<void> => {
+  if (!isMailConfigured()) return; // aucun service d'e-mail : l'administrateur voit simplement les demandes dans l'application
   try {
     await sendMail(build());
   } catch (err) {
@@ -111,7 +112,12 @@ export const signupService = {
       prisma.user.groupBy({ by: ['approvalStatus'], where: { role: { name: 'ELECTION_ADMIN' } }, _count: { _all: true } })
     ]);
     const count = (s: string) => counts.find((c) => c.approvalStatus === s)?._count._all ?? 0;
-    return { items, counts: { pending: count('PENDING'), approved: count('APPROVED'), rejected: count('REJECTED') }, open: await this.isOpen() };
+    return {
+      items,
+      counts: { pending: count('PENDING'), approved: count('APPROVED'), rejected: count('REJECTED') },
+      open: await this.isOpen(),
+      emailAvailable: isMailConfigured()
+    };
   },
 
   /** Valider ou refuser. Ne concerne que les comptes organisateurs : un super administrateur n'est jamais modifié ici. */

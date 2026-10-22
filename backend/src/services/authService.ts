@@ -82,7 +82,7 @@ export class AuthService {
   /** Un compte en attente, refusé ou désactivé ne peut pas ouvrir de session. */
   private assertCanSignIn(user: { approvalStatus: string; isActive: boolean }) {
     if (user.approvalStatus === 'PENDING') {
-      throw new UserError(403, 'Votre inscription est en attente de validation par un administrateur. Vous recevrez un e-mail dès qu’elle sera traitée.');
+      throw new UserError(403, 'Votre inscription est en attente de validation par un administrateur. Réessayez de vous connecter un peu plus tard.');
     }
     if (user.approvalStatus === 'REJECTED') {
       throw new UserError(403, 'Votre demande d’accès n’a pas été acceptée. Contactez l’administrateur de la plateforme.');

@@ -5,6 +5,7 @@ import { prisma } from '../config/database.js';
 import { sendSuccess } from '../utils/response.js';
 import { AuthorizationError, UserError, ValidationError } from '../utils/errors.js';
 import { recordAudit } from '../utils/audit.js';
+import { isMailConfigured } from '../utils/mailer.js';
 import {
   adminVoteService,
   Admin,
@@ -70,6 +71,28 @@ export const deleteVote = asyncHandler(async (req: Request, res: Response) => {
   await adminVoteService.remove(admin, req.params.id);
   recordAudit(admin.id, 'VOTE_DELETED', req, { entity: 'Election', entityId: req.params.id, changes: { title: detail.title } });
   sendSuccess(res, 200, 'Vote deleted');
+});
+
+export const approveParticipant = asyncHandler(async (req: Request, res: Response) => {
+  const admin = await currentAdmin(req);
+  sendSuccess(res, 200, 'Participant approved', await adminVoteService.approveParticipant(admin, req.params.id, req.params.participantId));
+});
+
+export const rejectParticipant = asyncHandler(async (req: Request, res: Response) => {
+  const admin = await currentAdmin(req);
+  sendSuccess(res, 200, 'Participant rejected', await adminVoteService.rejectParticipant(admin, req.params.id, req.params.participantId));
+});
+
+export const approveAllPending = asyncHandler(async (req: Request, res: Response) => {
+  const admin = await currentAdmin(req);
+  const result = await adminVoteService.approveAllPending(admin, req.params.id);
+  audit(admin, 'PARTICIPANTS_APPROVED', req, req.params.id, { count: result.approved });
+  sendSuccess(res, 200, 'Pending participants approved', result);
+});
+
+export const capabilities = asyncHandler(async (req: Request, res: Response) => {
+  await currentAdmin(req);
+  sendSuccess(res, 200, 'Capabilities retrieved', { emailAvailable: isMailConfigured() });
 });
 
 export const addCandidate = asyncHandler(async (req: Request, res: Response) => {

@@ -18,6 +18,16 @@ export const identify = asyncHandler(async (req: Request, res: Response) => {
   sendSuccess(res, 200, 'Code sent', await publicVoteService.identify(req.params.token, req.body));
 });
 
+export const join = asyncHandler(async (req: Request, res: Response) => {
+  noStore(res);
+  sendSuccess(res, 201, 'Join request received', await publicVoteService.join(req.params.token, req.body));
+});
+
+export const joinStatus = asyncHandler(async (req: Request, res: Response) => {
+  noStore(res);
+  sendSuccess(res, 200, 'Join status retrieved', await publicVoteService.getJoinStatus(req.params.token, req.body));
+});
+
 export const verify = asyncHandler(async (req: Request, res: Response) => {
   noStore(res);
   sendSuccess(res, 200, 'Code verified', await publicVoteService.verify(req.params.token, req.body));
