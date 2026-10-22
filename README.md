@@ -8,8 +8,9 @@ each candidate **a private link** to follow their own score live. The interface 
 0. New **organisers sign up** on the site; the super administrator approves or refuses each request before they can sign in.
 
 1. The **administrator** signs in, creates a vote (a question and its candidates) and opens it.
-2. The **audience** opens the shared link, enters a name and an e-mail address, types the 6-digit code received by
-   e-mail, and votes once. No account is needed.
+2. The **audience** opens the shared link and sends a request to take part (name and e-mail, no account). The
+   administrator approves it, the person's screen continues by itself, and they vote once. An optional mode sends a
+   6-digit code by e-mail instead, when an e-mail service is configured.
 3. Each **candidate** has a private link showing only their own live percentage, never the others'.
 4. The administrator follows participation and results live. The audience sees the results once the vote is closed.
 
@@ -17,7 +18,8 @@ each candidate **a private link** to follow their own score live. The interface 
 
 - **Secret ballot:** a ballot stores only the chosen candidate, with no date and no link to the voter. The voter list
   records only *that* someone voted, to prevent a second vote.
-- **One vote per person:** e-mail verification code (hashed, valid 10 minutes, 5 attempts), atomic double-vote protection.
+- **One vote per person:** the administrator approves each participant (or, optionally, an e-mail code: hashed, 10
+  minutes, 5 attempts), with atomic double-vote protection. No e-mail service is required.
 - **Organiser sign-ups with approval:** a public request form, a super-admin review page with a badge for pending
   requests, e-mail notifications, withdrawal of access, and an on/off switch for sign-ups.
 - **Admin space:** create, open and close votes, edit candidates before opening, copy links, QR code, live results,

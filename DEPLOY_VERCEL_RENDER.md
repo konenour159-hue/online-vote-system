@@ -5,8 +5,10 @@
 0. **Organisers sign up** on `/signup`. The super administrator approves or refuses each request (menu **Inscriptions**)
    before the person can sign in; the applicant is notified by e-mail. Sign-ups can be closed with one switch.
 1. The **administrator** signs in, creates a vote (a question and a list of candidates) and opens it.
-2. They share **one link with the audience**. Each person enters a name and an e-mail address, types the 6-digit code
-   received by e-mail, and votes once. No account is needed.
+2. They share **one link with the audience**. Each person sends a request to take part (name and e-mail address, no
+   account); the administrator approves it on the vote page, and the person's screen then continues **by itself** to the
+   ballot. Each person votes once. (Optional: with an e-mail service configured, a vote can instead use a 6-digit code
+   sent by e-mail, with no approval needed.)
 3. Each **candidate** gets **a private link** showing only their own live percentage.
 4. The administrator follows everything live; the audience sees the results when the vote is closed.
 
@@ -37,23 +39,21 @@ Browser ──► Vercel (PWA files) ──/api/*──► Render (Express + Pos
 > **Free plans are for trying it out.** The free web service sleeps after inactivity (the first request takes about
 > a minute) and the free database **expires after 30 days**. Use paid plans for real elections.
 
-## 2. Set up the e-mail that sends the voters' codes
+## 2. (Optional) Send e-mails
 
-Voters confirm their e-mail address with a 6-digit code, so the API must be able to send e-mail. Render's free plans
-block SMTP, so the project uses the **Brevo** HTTP API (free up to 300 e-mails a day, so roughly 300 voters a day):
+**You can skip this section.** By default no e-mail is needed: the administrator approves each person, and organiser
+sign-ups are approved on the **Inscriptions** page (the applicant simply signs in again later).
 
-1. Create a free account at <https://www.brevo.com>.
-2. **Senders, Domains & Dedicated IPs → Senders → Add a sender.** Use an address you control and confirm the e-mail
-   Brevo sends you. (Better deliverability: authenticate your own domain there, otherwise codes may land in spam.)
-3. **SMTP & API → API Keys → Generate a new API key.** Copy it.
-4. On Render, open `genies-vote-api` → **Environment** and set:
-   - `EMAIL_PROVIDER` = `brevo`
-   - `BREVO_API_KEY` = the key
-   - `EMAIL_FROM` = the sender address you validated
-   - `PUBLIC_APP_URL` = your site address (for example `https://genies-vote.vercel.app`), so the e-mails contain the
-     right links
-5. Save. Render redeploys. Without these settings the API refuses to start sending codes in production (it never
-   falls back to printing codes in the logs there).
+If you want codes sent by e-mail (a vote can then be created with the "Code envoyé par e-mail" option), add these in
+Render → `genies-vote-api` → **Environment**. Render's free plans block SMTP, so use an HTTP e-mail API such as Brevo
+(free up to 300 e-mails a day; validate a sender address and create an API key in your Brevo account):
+
+- `EMAIL_PROVIDER` = `brevo` (or `smtp` on a paid Render plan, with `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`)
+- `BREVO_API_KEY` = your key
+- `EMAIL_FROM` = the validated sender address
+- `PUBLIC_APP_URL` = your site address, so the e-mails contain the right links
+
+Without these settings the "e-mail code" option is simply hidden in the vote form.
 
 ## 3. Create the first administrator (no demo data)
 
@@ -90,7 +90,8 @@ The password needs 8+ characters with an uppercase letter, a lowercase letter, a
 ## 5. Check it works
 
 - Open the site, sign in with the administrator you created, and create a vote: question, candidates, then **Open**.
-- Open the audience link in a private window and vote with your own e-mail: you should receive a code within seconds.
+- Open the audience link in a private window and send a request to take part. On the vote page, approve it: the private
+  window should move on to the ballot by itself within a few seconds.
 - Open a candidate's private link: it shows only that candidate's live percentage.
 - In Chrome or Edge the address bar offers **Install**; on phones use *Add to Home Screen*. The footer also shows an
   **Installer l'application** link when the browser allows it.
