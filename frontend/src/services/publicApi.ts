@@ -26,6 +26,7 @@ export interface PublicVote {
   title: string;
   description: string | null;
   phase: 'not_open' | 'open' | 'closed';
+  accessMode: 'APPROVAL' | 'EMAIL_CODE';
   endDate: string;
   candidates: Array<{ id: string; name: string; bio: string | null; photo: string | null }>;
 }
@@ -45,6 +46,15 @@ export interface CandidateView {
 
 export const publicVoteService = {
   getVote: async (token: string): Promise<PublicVote> => (await publicApi.get(`/votes/${token}`)).data.data,
+  join: async (token: string, name: string, email: string, message: string) =>
+    (await publicApi.post(`/votes/${token}/join`, { name, email, message })).data.data as { participantToken: string; status: 'PENDING' },
+  joinStatus: async (token: string, participantToken: string) =>
+    (await publicApi.post(`/votes/${token}/join-status`, { participantToken })).data.data as {
+      status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'VOTED';
+      name: string;
+      phase: 'not_open' | 'open' | 'closed';
+      session?: string;
+    },
   identify: async (token: string, name: string, email: string) =>
     (await publicApi.post(`/votes/${token}/identify`, { name, email })).data.data as { sent: boolean; resendAfterSeconds: number; expiresInMinutes: number },
   verify: async (token: string, email: string, code: string) =>

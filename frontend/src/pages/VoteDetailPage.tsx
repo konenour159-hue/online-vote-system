@@ -172,19 +172,37 @@ export const VoteDetailPage: React.FC = () => {
     onError: (e) => fail(errorText(e))
   });
 
+  const approveOne = useMutation({
+    mutationFn: (pid: string) => adminService.approveParticipant(id, pid),
+    onSuccess: (r: any) => refresh(`${r.name} peut maintenant voter.`),
+    onError: (e) => fail(errorText(e))
+  });
+  const rejectOne = useMutation({
+    mutationFn: (pid: string) => adminService.rejectParticipant(id, pid),
+    onSuccess: (r: any) => refresh(`L’accès de ${r.name} est refusé.`),
+    onError: (e) => fail(errorText(e))
+  });
+  const approveAll = useMutation({
+    mutationFn: () => adminService.approveAll(id),
+    onSuccess: (r) => refresh(`${r.approved} ${r.approved > 1 ? 'personnes peuvent' : 'personne peut'} maintenant voter.`),
+    onError: (e) => fail(errorText(e))
+  });
+
   // Paramètres du vote
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [accessMode, setAccessMode] = useState<'APPROVAL' | 'EMAIL_CODE'>('APPROVAL');
   useEffect(() => {
     if (vote) {
       setTitle(vote.title);
       setDescription(vote.description ?? '');
       setEndDate(toLocalInput(vote.endDate));
+      setAccessMode(vote.accessMode);
     }
-  }, [vote?.id, vote?.title, vote?.description, vote?.endDate]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [vote?.id, vote?.title, vote?.description, vote?.endDate, vote?.accessMode]); // eslint-disable-line react-hooks/exhaustive-deps
   const saveSettings = useMutation({
-    mutationFn: () => adminService.update(id, { title, description, endDate: new Date(endDate).toISOString() }),
+    mutationFn: () => adminService.update(id, { title, description, endDate: new Date(endDate).toISOString(), ...(vote?.status === 'DRAFT' ? { accessMode } : {}) }),
     onSuccess: () => refresh('Paramètres enregistrés.'),
     onError: (e) => fail(errorText(e, 'Les paramètres n’ont pas pu être enregistrés.'))
   });
@@ -217,6 +235,15 @@ export const VoteDetailPage: React.FC = () => {
               <p className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
                 <StatusBadge status={vote.status} />
                 <span className="text-muted">Fin : {when(vote.endDate)}</span>
+                <span className="text-muted">{vote.accessMode === 'APPROVAL' ? 'Admission : vous validez chaque personne' : 'Admission : code envoyé par e-mail'}</span>
+                {vote.pendingCount > 0 && (
+                  <a href="#demandes" className="inline-flex items-center gap-2 font-semibold text-ink underline underline-offset-4">
+                    <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-spark px-1.5 text-xs font-bold text-night" aria-hidden="true">
+                      {vote.pendingCount}
+                    </span>
+                    {vote.pendingCount > 1 ? 'demandes à valider' : 'demande à valider'}
+                  </a>
+                )}
               </p>
               <div className="mt-5 flex flex-wrap items-center gap-3">
                 {vote.status === 'DRAFT' && (
@@ -250,9 +277,13 @@ export const VoteDetailPage: React.FC = () => {
               title="Partager avec votre public"
               intro={
                 vote.status === 'DRAFT'
-                  ? 'Ce lien fonctionnera dès que vous aurez ouvert le vote. Chaque personne y saisit son nom et son e-mail, reçoit un code, puis vote une seule fois.'
+                  ? (vote.accessMode === 'APPROVAL'
+                      ? 'Ce lien fonctionnera dès que vous aurez ouvert le vote. Chaque personne y envoie une demande (nom, e-mail) que vous validez ici ; elle vote ensuite une seule fois.'
+                      : 'Ce lien fonctionnera dès que vous aurez ouvert le vote. Chaque personne y saisit son nom et son e-mail, reçoit un code, puis vote une seule fois.')
                   : vote.status === 'ACTIVE'
-                    ? 'Le vote est ouvert. Envoyez ce lien à votre public : chaque personne vote une seule fois, après avoir confirmé son e-mail.'
+                    ? (vote.accessMode === 'APPROVAL'
+                      ? 'Le vote est ouvert. Envoyez ce lien à votre public : chaque personne vous envoie une demande, que vous validez dans la section « Demandes d’accès » ci-dessous.'
+                      : 'Le vote est ouvert. Envoyez ce lien à votre public : chaque personne vote une seule fois, après avoir confirmé son e-mail.')
                     : 'Le vote est terminé : ce lien affiche désormais les résultats.'
               }
             >
@@ -341,36 +372,99 @@ export const VoteDetailPage: React.FC = () => {
               {vote.totalVotes === 0 && <p className="mt-4 text-sm text-muted">Aucun vote pour l’instant.</p>}
             </Section>
 
-            <Section
-              title="Participants"
-              intro="Qui a participé et qui a déjà voté. Le choix de chacun n’est jamais enregistré avec son nom : le vote reste secret."
-            >
-              {vote.participants.length === 0 ? (
-                <p className="text-muted">Personne ne s’est encore identifié.</p>
-              ) : (
-                <div role="region" aria-label="Liste des participants (défilement horizontal si besoin)" tabIndex={0} className="overflow-x-auto">
-                  <table className="w-full min-w-[30rem] text-left text-sm">
-                    <caption className="sr-only">Participants au vote</caption>
-                    <thead>
-                      <tr className="text-muted">
-                        <th scope="col" className="py-3 pr-4 font-semibold">Nom</th>
-                        <th scope="col" className="py-3 pr-4 font-semibold">E-mail</th>
-                        <th scope="col" className="py-3 font-semibold">État</th>
-                      </tr>
-                    </thead>
-                    <tbody ref={participantRows} className="divide-y divide-line border-t border-line">
-                      {vote.participants.map((p) => (
-                        <tr key={p.id} data-row data-key={p.id} data-time={p.votedAt ?? p.verifiedAt ?? ''}>
-                          <td className="py-3 pr-4 font-semibold">{p.name}</td>
-                          <td className="py-3 pr-4 text-muted">{p.email}</td>
-                          <td className="py-3">{p.hasVoted ? 'A voté' : p.verifiedAt ? 'Vérifié, n’a pas encore voté' : 'E-mail non confirmé'}</td>
+            <div id="demandes" className="scroll-mt-6">
+              <Section
+                title={vote.accessMode === 'APPROVAL' ? 'Demandes d’accès' : 'Participants'}
+                intro={
+                  vote.accessMode === 'APPROVAL'
+                    ? 'Chaque personne qui ouvre votre lien envoie une demande. Dès que vous la validez, sa page continue toute seule et elle peut voter. Le choix de chacun reste secret : il n’est jamais relié à son nom.'
+                    : 'Qui a participé et qui a déjà voté. Le choix de chacun n’est jamais enregistré avec son nom : le vote reste secret.'
+                }
+              >
+                {vote.accessMode === 'APPROVAL' && vote.pendingCount > 0 && (
+                  <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-spark/60 bg-spark/10 p-4">
+                    <p className="font-semibold">
+                      {vote.pendingCount} {vote.pendingCount > 1 ? 'demandes à valider' : 'demande à valider'}
+                    </p>
+                    <ConfirmButton
+                      question={`Valider ${vote.pendingCount > 1 ? `les ${vote.pendingCount} demandes` : 'la demande'} ?`}
+                      confirmLabel="Oui, tout valider"
+                      onConfirm={() => approveAll.mutateAsync()}
+                    >
+                      Tout valider
+                    </ConfirmButton>
+                  </div>
+                )}
+                {vote.participants.length === 0 ? (
+                  <p className="text-muted">{vote.accessMode === 'APPROVAL' ? 'Aucune demande pour l’instant.' : 'Personne ne s’est encore identifié.'}</p>
+                ) : (
+                  <div role="region" aria-label="Liste des participants (défilement horizontal si besoin)" tabIndex={0} className="overflow-x-auto">
+                    <table className="w-full min-w-[40rem] text-left text-sm">
+                      <caption className="sr-only">Demandes d’accès et participants</caption>
+                      <thead>
+                        <tr className="text-muted">
+                          <th scope="col" className="py-3 pr-4 font-semibold">Nom</th>
+                          <th scope="col" className="py-3 pr-4 font-semibold">E-mail</th>
+                          <th scope="col" className="py-3 pr-4 font-semibold">État</th>
+                          <th scope="col" className="py-3 font-semibold">Action</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </Section>
+                      </thead>
+                      <tbody ref={participantRows} className="divide-y divide-line border-t border-line">
+                        {vote.participants.map((p) => {
+                          const state = p.hasVoted
+                            ? 'A voté'
+                            : p.status === 'PENDING'
+                              ? 'En attente de validation'
+                              : p.status === 'REJECTED'
+                                ? 'Refusé'
+                                : p.verifiedAt
+                                  ? 'Validé, n’a pas encore voté'
+                                  : 'E-mail non confirmé';
+                          return (
+                            <tr key={p.id} data-row data-key={p.id} data-time={p.votedAt ?? p.decidedAt ?? p.createdAt} className="align-top">
+                              <td className="py-3 pr-4 font-semibold">
+                                {p.name}
+                                {p.requestMessage && <span className="mt-1 block max-w-[28ch] text-xs font-normal text-muted">« {p.requestMessage} »</span>}
+                              </td>
+                              <td className="py-3 pr-4 text-muted">{p.email}</td>
+                              <td className="py-3 pr-4">{state}</td>
+                              <td className="py-3">
+                                {vote.accessMode === 'APPROVAL' && !p.hasVoted && vote.status !== 'COMPLETED' && (
+                                  <div className="flex flex-wrap gap-2">
+                                    {p.status !== 'APPROVED' && (
+                                      <button
+                                        type="button"
+                                        onClick={() => approveOne.mutate(p.id)}
+                                        disabled={approveOne.isPending}
+                                        aria-label={`Valider ${p.name}`}
+                                        className="h-9 rounded-md bg-brand px-3 text-sm font-semibold text-brand-fg hover:bg-brand/90 disabled:opacity-50"
+                                      >
+                                        Valider
+                                      </button>
+                                    )}
+                                    {p.status !== 'REJECTED' && (
+                                      <ConfirmButton
+                                        tone="danger"
+                                        question={p.status === 'APPROVED' ? `Retirer l’accès de ${p.name} ?` : `Refuser ${p.name} ?`}
+                                        confirmLabel={p.status === 'APPROVED' ? 'Retirer' : 'Refuser'}
+                                        onConfirm={() => rejectOne.mutateAsync(p.id)}
+                                        className="!h-9 !px-3"
+                                      >
+                                        {p.status === 'APPROVED' ? 'Retirer l’accès' : 'Refuser'}
+                                      </ConfirmButton>
+                                    )}
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </Section>
+            </div>
 
             <Section title="Paramètres">
               <form
@@ -383,6 +477,24 @@ export const VoteDetailPage: React.FC = () => {
                 <Input label="Titre" value={title} onChange={(e) => setTitle(e.target.value)} />
                 <Textarea label="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
                 <Input label="Fin du vote" type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} disabled={vote.status === 'COMPLETED'} />
+                <div>
+                  <label htmlFor="access-mode" className="mb-1.5 block text-sm font-semibold">
+                    Admission des votants
+                  </label>
+                  <select
+                    id="access-mode"
+                    value={accessMode}
+                    onChange={(e) => setAccessMode(e.target.value as 'APPROVAL' | 'EMAIL_CODE')}
+                    disabled={vote.status !== 'DRAFT'}
+                    className="h-11 w-full rounded-md border border-line bg-surface px-3 text-base disabled:opacity-60"
+                  >
+                    <option value="APPROVAL">Je valide chaque personne</option>
+                    <option value="EMAIL_CODE" disabled={!vote.emailAvailable && vote.accessMode !== 'EMAIL_CODE'}>
+                      Code envoyé par e-mail{!vote.emailAvailable ? ' (indisponible : aucun service d’e-mail)' : ''}
+                    </option>
+                  </select>
+                  {vote.status !== 'DRAFT' && <p className="mt-1.5 text-sm text-muted">Le mode ne se change plus une fois le vote ouvert.</p>}
+                </div>
                 <div>
                   <Button type="submit" variant="outline" isLoading={saveSettings.isPending}>
                     Enregistrer les paramètres

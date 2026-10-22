@@ -14,7 +14,7 @@ import { dur, ease, FULL_MOTION, MAX_STAGGERED_ITEMS, stagger } from '../motion/
 
 export const DashboardPage: React.FC = () => {
   const user = useAuthStore((s) => s.user);
-  const { data, isLoading, isError } = useQuery({ queryKey: ['admin-votes'], queryFn: adminService.list, refetchInterval: 15000 });
+  const { data, isLoading, isError } = useQuery({ queryKey: ['admin-votes'], queryFn: adminService.list, refetchInterval: 10000 });
   const votes = data ?? [];
   const list = useRef<HTMLUListElement>(null);
 
@@ -79,6 +79,12 @@ export const DashboardPage: React.FC = () => {
                       {v.candidatesCount} candidats · {v.participantsCount} participants · {v.votesCount} {v.votesCount > 1 ? 'votes' : 'vote'}
                     </span>
                     <span>Fin : {format(new Date(v.endDate), "d MMM yyyy 'à' HH:mm", { locale: fr })}</span>
+                    {v.pendingCount > 0 && (
+                      <Link to={`/admin/votes/${v.id}#demandes`} className="inline-flex items-center gap-2 font-semibold text-ink underline underline-offset-4">
+                        <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-spark px-1.5 text-xs font-bold text-night" aria-hidden="true">{v.pendingCount}</span>
+                        {v.pendingCount > 1 ? 'demandes à valider' : 'demande à valider'}
+                      </Link>
+                    )}
                   </p>
                 </div>
                 <LinkButton to={`/admin/votes/${v.id}`} variant="outline" size="sm">

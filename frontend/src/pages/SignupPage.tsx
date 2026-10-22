@@ -55,9 +55,9 @@ export const SignupPage: React.FC = () => {
               Demande envoyée
             </h1>
             <p className="mt-4 text-muted">
-              Merci {form.firstName}. Un administrateur va examiner votre demande. Vous recevrez un e-mail à <strong className="text-ink">{form.email}</strong> dès qu’elle sera traitée ; vous pourrez alors vous connecter.
+              Merci {form.firstName}. Un administrateur va examiner votre demande. Vous pourrez vous connecter dès qu’elle sera validée : revenez essayer un peu plus tard avec votre adresse e-mail (<strong className="text-ink">{form.email}</strong>) et votre mot de passe.
             </p>
-            <p className="mt-3 text-sm text-muted">Si vous ne voyez rien d’ici quelques jours, pensez à vérifier vos courriers indésirables.</p>
+            <p className="mt-3 text-sm text-muted">Aucun e-mail de confirmation n’est envoyé : c’est à vous de revenir sur la page de connexion.</p>
             <Link to="/" className="mt-6 inline-flex min-h-11 items-center font-semibold underline underline-offset-4">
               Retour à l’accueil
             </Link>

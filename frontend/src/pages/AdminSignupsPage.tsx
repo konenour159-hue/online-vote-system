@@ -36,7 +36,10 @@ export const AdminSignupsPage: React.FC = () => {
 
   const approve = useMutation({
     mutationFn: (r: SignupRequest) => accountService.approve(r.id),
-    onSuccess: (_d, r) => refresh(`${r.firstName} ${r.lastName} peut maintenant se connecter. Un e-mail lui a été envoyé.`),
+    onSuccess: (_d, r) =>
+      refresh(
+        `${r.firstName} ${r.lastName} peut maintenant se connecter.${data?.emailAvailable ? ' Un e-mail lui a été envoyé.' : ' Prévenez-la vous-même : aucun e-mail n’est envoyé.'}`
+      ),
     onError: fail
   });
   const reject = useMutation({
@@ -120,7 +123,7 @@ export const AdminSignupsPage: React.FC = () => {
               <FadeIn className="mt-10 border-t border-line pt-8">
                 <h2 className="text-2xl font-bold">{tab === 'PENDING' ? 'Aucune demande en attente' : tab === 'APPROVED' ? 'Aucun compte validé' : 'Aucune demande refusée'}</h2>
                 <p className="mt-2 max-w-[52ch] text-muted">
-                  {tab === 'PENDING' ? 'Quand quelqu’un demandera un accès, sa demande apparaîtra ici et vous recevrez un e-mail.' : 'Rien à afficher pour le moment.'}
+                  {tab === 'PENDING' ? 'Quand quelqu’un demandera un accès, sa demande apparaîtra ici (et dans le menu).' : 'Rien à afficher pour le moment.'}
                 </p>
               </FadeIn>
             ) : (

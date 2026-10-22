@@ -13,7 +13,7 @@ import { dur, ease, FULL_MOTION, scroll, stagger } from '../motion/tokens';
 
 const steps = [
   { title: 'Créez votre vote', text: 'Vous saisissez la question et la liste des candidats, puis vous ouvrez le vote quand vous êtes prêt.' },
-  { title: 'Partagez le lien', text: 'Votre public ouvre le lien, confirme son adresse e-mail avec un code et vote une seule fois. Chaque candidat reçoit son propre lien privé.' },
+  { title: 'Partagez le lien', text: 'Chaque personne ouvre le lien et vous envoie une demande de participation. Vous la validez, et elle peut voter, une seule fois. Chaque candidat reçoit son propre lien privé.' },
   { title: 'Suivez en direct', text: 'Vous voyez les résultats en direct, et chaque candidat suit son propre score. Le public découvre les résultats à la clôture.' }
 ];
 
@@ -116,7 +116,7 @@ export const LandingPage: React.FC = () => {
           <div>
             <h2 className="max-w-[20ch] text-3xl font-bold md:text-4xl">Votre choix reste secret.</h2>
             <p className="mt-4 max-w-[58ch] opacity-85">
-              Les organisateurs voient qui a participé, jamais pour qui chacun a voté : le bulletin n’est relié ni au nom ni à l’adresse e-mail. Chaque personne ne vote qu’une fois, les codes de vérification expirent en 10 minutes et chaque action d’administration est journalisée.
+              Les organisateurs voient qui a participé, jamais pour qui chacun a voté : le bulletin n’est relié ni au nom ni à l’adresse e-mail. Chaque personne ne vote qu’une fois, vous validez qui peut participer, et chaque action d’administration est journalisée.
             </p>
           </div>
           <NeuralNetwork className="h-auto w-full text-white/80" />

@@ -23,6 +23,7 @@ export interface SignupList {
   items: SignupRequest[];
   counts: { pending: number; approved: number; rejected: number };
   open: boolean;
+  emailAvailable: boolean;
 }
 export interface NewSignup {
   firstName: string;

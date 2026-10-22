@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, X } from 'lucide-react';
 import { Header } from '../components/Header';
 import { Layout } from '../components/Layout';
@@ -8,7 +8,7 @@ import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Textarea } from '../components/Textarea';
 import { FadeIn } from '../motion/FadeIn';
-import { adminService } from '../services/adminService';
+import { adminService, AccessMode } from '../services/adminService';
 import { errorText } from '../services/publicApi';
 
 const toLocalInput = (d: Date) => {
@@ -34,6 +34,8 @@ export const VoteFormPage: React.FC = () => {
   ]);
   const [nextKey, setNextKey] = useState(3);
   const [error, setError] = useState('');
+  const [accessMode, setAccessMode] = useState<AccessMode>('APPROVAL');
+  const caps = useQuery({ queryKey: ['admin-capabilities'], queryFn: adminService.capabilities, retry: false });
 
   const create = useMutation({
     mutationFn: () =>
@@ -41,6 +43,7 @@ export const VoteFormPage: React.FC = () => {
         title,
         description,
         endDate: new Date(endDate).toISOString(),
+        accessMode,
         candidates: rows.filter((r) => r.name.trim()).map((r) => ({ name: r.name, bio: r.bio }))
       }),
     onSuccess: (created) => {
@@ -84,6 +87,32 @@ export const VoteFormPage: React.FC = () => {
             <Input label="Fin du vote" type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             <p className="mt-1.5 text-sm text-muted">Le vote se ferme automatiquement à cette date. Vous pouvez aussi le clore plus tôt.</p>
           </div>
+
+          <fieldset>
+            <legend className="font-display text-2xl font-bold">Qui peut voter ?</legend>
+            <div className="mt-4 space-y-2">
+              <label className={`flex cursor-pointer items-start gap-3 rounded-md border px-4 py-3 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-smoke ${accessMode === 'APPROVAL' ? 'border-ink bg-ink/5' : 'border-line hover:border-smoke'}`}>
+                <input type="radio" name="accessMode" className="mt-1.5 h-4 w-4 accent-[rgb(var(--ink))]" checked={accessMode === 'APPROVAL'} onChange={() => setAccessMode('APPROVAL')} />
+                <span>
+                  <span className="block font-semibold">Je valide chaque personne (recommandé)</span>
+                  <span className="block text-sm text-muted">Chaque votant envoie une demande (nom, e-mail), que vous validez depuis la page du vote. Il vote dès que vous avez validé. Aucun service d’e-mail nécessaire.</span>
+                </span>
+              </label>
+              <label
+                className={`flex items-start gap-3 rounded-md border px-4 py-3 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-smoke ${caps.data?.emailAvailable ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'} ${accessMode === 'EMAIL_CODE' ? 'border-ink bg-ink/5' : 'border-line'}`}
+              >
+                <input type="radio" name="accessMode" className="mt-1.5 h-4 w-4 accent-[rgb(var(--ink))]" checked={accessMode === 'EMAIL_CODE'} disabled={!caps.data?.emailAvailable} onChange={() => setAccessMode('EMAIL_CODE')} />
+                <span>
+                  <span className="block font-semibold">Code envoyé par e-mail</span>
+                  <span className="block text-sm text-muted">
+                    {caps.data?.emailAvailable
+                      ? 'Chaque votant reçoit un code à 6 chiffres sur son adresse e-mail et vote tout seul, sans votre intervention.'
+                      : 'Indisponible : aucun service d’envoi d’e-mails n’est configuré sur ce serveur.'}
+                  </span>
+                </span>
+              </label>
+            </div>
+          </fieldset>
 
           <fieldset>
             <legend className="font-display text-2xl font-bold">Candidats</legend>

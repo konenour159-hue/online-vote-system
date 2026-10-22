@@ -11,7 +11,18 @@ import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { popSelected } from '../motion/usePressPop';
 import { errorText, publicVoteService } from '../services/publicApi';
 
-type Step = 'identify' | 'code' | 'choose' | 'confirm' | 'done';
+type Step = 'identify' | 'code' | 'request' | 'waiting' | 'rejected' | 'choose' | 'confirm' | 'done';
+
+/** Secret gardé sur l'appareil pour reprendre une demande d'accès sans compte ni e-mail. */
+const storeKey = (token: string) => `genies-join:${token}`;
+const readStored = (token: string): { pt: string; name: string; email: string } | null => {
+  try {
+    const raw = localStorage.getItem(storeKey(token));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
 
 const StepTitle = React.forwardRef<HTMLHeadingElement, { n: number; children: React.ReactNode }>(({ n, children }, ref) => (
   <>
@@ -32,6 +43,9 @@ export const VotePage: React.FC = () => {
   const [step, setStep] = useState<Step>('identify');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [note, setNote] = useState('');
+  const [participantToken, setParticipantToken] = useState('');
+  const [checking, setChecking] = useState(false);
   const [code, setCode] = useState('');
   const [session, setSession] = useState('');
   const [choice, setChoice] = useState('');
@@ -42,6 +56,7 @@ export const VotePage: React.FC = () => {
   const vote = useQuery({
     queryKey: ['public-vote', token],
     queryFn: () => publicVoteService.getVote(token),
+    refetchInterval: 30000,
     retry: (count, err: any) => err?.response?.status !== 404 && count < 1
   });
   const closed = vote.data?.phase === 'closed';
@@ -51,6 +66,58 @@ export const VotePage: React.FC = () => {
     enabled: closed,
     retry: false
   });
+
+  const approvalMode = vote.data?.accessMode === 'APPROVAL';
+
+  // Mode « validation par l'organisateur » : on part de la demande, ou on reprend celle gardée sur l'appareil.
+  const startedRef = useRef(false);
+  useEffect(() => {
+    if (!vote.data || vote.data.phase !== 'open' || startedRef.current) return;
+    startedRef.current = true;
+    if (vote.data.accessMode !== 'APPROVAL') return;
+    const stored = readStored(token);
+    if (stored) {
+      setName(stored.name);
+      setEmail(stored.email);
+      setParticipantToken(stored.pt);
+      setStep('waiting');
+    } else {
+      setStep('request');
+    }
+  }, [vote.data, token]);
+
+  // Suivi de la demande : toutes les 4 secondes tant qu'on attend, et dès qu'on arrive sur l'écran.
+  const checkStatus = async () => {
+    if (!participantToken) return;
+    setChecking(true);
+    try {
+      const r = await publicVoteService.joinStatus(token, participantToken);
+      if (r.status === 'APPROVED' && r.session) {
+        setSession(r.session);
+        setStep((cur) => (cur === 'waiting' ? 'choose' : cur));
+      } else if (r.status === 'VOTED') {
+        setStep('done');
+      } else if (r.status === 'REJECTED') {
+        setStep('rejected');
+      }
+    } catch (e: any) {
+      if (e?.response?.status === 404) {
+        localStorage.removeItem(storeKey(token));
+        setParticipantToken('');
+        setError('Votre demande n’a pas été retrouvée. Vous pouvez en envoyer une nouvelle.');
+        setStep('request');
+      }
+    } finally {
+      setChecking(false);
+    }
+  };
+  useEffect(() => {
+    if (step !== 'waiting' || !participantToken) return;
+    void checkStatus();
+    const timer = window.setInterval(() => void checkStatus(), 4000);
+    return () => window.clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, participantToken]);
 
   // Après chaque changement d'étape, le focus passe au titre : les lecteurs d'écran annoncent la nouvelle étape.
   useEffect(() => {
@@ -67,6 +134,20 @@ export const VotePage: React.FC = () => {
     return () => window.clearTimeout(t);
   }, [cooldown]);
 
+  const join = useMutation({
+    mutationFn: () => publicVoteService.join(token, name, email, note),
+    onSuccess: (r) => {
+      setError('');
+      setParticipantToken(r.participantToken);
+      try {
+        localStorage.setItem(storeKey(token), JSON.stringify({ pt: r.participantToken, name, email }));
+      } catch {
+        /* navigateur sans stockage : la demande fonctionne quand même tant que la page reste ouverte */
+      }
+      setStep('waiting');
+    },
+    onError: (e) => setError(errorText(e))
+  });
   const identify = useMutation({
     mutationFn: () => publicVoteService.identify(token, name, email),
     onSuccess: (r) => {
@@ -99,7 +180,11 @@ export const VotePage: React.FC = () => {
       setError(errorText(e));
       if (e?.response?.status === 401) {
         setSession('');
-        setStep('identify');
+        setStep(approvalMode ? 'waiting' : 'identify');
+      }
+      if (e?.response?.status === 403 && approvalMode) {
+        setSession('');
+        setStep('waiting');
       }
       if (e?.response?.status === 409) vote.refetch();
     }
@@ -193,7 +278,81 @@ export const VotePage: React.FC = () => {
                 </FadeIn>
               )}
 
-              {!alreadyVoted && step === 'identify' && (
+              {approvalMode && step === 'request' && (
+                <FadeIn>
+                  <StepTitle ref={heading} n={1}>
+                    Demandez à participer
+                  </StepTitle>
+                  <p className="mt-2 text-muted">
+                    L’organisateur valide chaque personne avant qu’elle puisse voter. Il n’y a ni code ni e-mail de confirmation : votre demande lui est transmise directement. Votre choix reste secret.
+                  </p>
+                  <form
+                    noValidate
+                    className="mt-6 space-y-4"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      setError('');
+                      join.mutate();
+                    }}
+                  >
+                    <Input label="Nom et prénom" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
+                    <div>
+                      <Input label="Adresse e-mail" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                      <p className="mt-1.5 text-sm text-muted">Elle aide l’organisateur à vous reconnaître. Elle n’est pas vérifiée et ne sert qu’à éviter les doublons.</p>
+                    </div>
+                    <Input label="Un mot pour l’organisateur (facultatif)" maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} />
+                    {error && (
+                      <FadeIn role="alert" className="text-sm text-bad">
+                        {error}
+                      </FadeIn>
+                    )}
+                    <Button type="submit" size="lg" isLoading={join.isPending} disabled={!online}>
+                      Envoyer ma demande
+                    </Button>
+                    {!online && <p className="text-sm text-muted">Vous êtes hors ligne : reconnectez-vous pour continuer.</p>}
+                  </form>
+                </FadeIn>
+              )}
+
+              {approvalMode && step === 'waiting' && (
+                <FadeIn role="status">
+                  <StepTitle ref={heading} n={2}>
+                    En attente de validation
+                  </StepTitle>
+                  <p className="mt-2 text-muted">
+                    Votre demande a été transmise à l’organisateur. Cette page continue <strong className="text-ink">toute seule</strong> dès qu’elle est validée : vous n’avez rien à faire.
+                  </p>
+                  <p className="mt-4 rounded-lg border border-line bg-surface p-4 text-sm">
+                    Demande de <strong>{name}</strong> ({email})
+                  </p>
+                  <p className="mt-4 flex items-center gap-2 text-sm text-muted">
+                    <span className={`h-2 w-2 rounded-full bg-ok transition-opacity ${checking ? 'opacity-100' : 'opacity-40'}`} aria-hidden="true" />
+                    Vérification toutes les 4 secondes
+                  </p>
+                  <p className="mt-3 text-sm text-muted">
+                    Votre demande est conservée sur cet appareil : vous pouvez fermer la page et revenir avec le même lien, sans effacer les données du navigateur.
+                  </p>
+                  {error && (
+                    <FadeIn role="alert" className="mt-3 text-sm text-bad">
+                      {error}
+                    </FadeIn>
+                  )}
+                  <Button variant="outline" className="mt-5" onClick={() => void checkStatus()} isLoading={checking} disabled={!online}>
+                    Vérifier maintenant
+                  </Button>
+                </FadeIn>
+              )}
+
+              {approvalMode && step === 'rejected' && (
+                <FadeIn role="status" className="rounded-lg border border-line bg-surface p-6">
+                  <h2 ref={heading} tabIndex={-1} className="text-2xl font-bold focus:outline-none">
+                    Votre demande n’a pas été acceptée
+                  </h2>
+                  <p className="mt-2 text-muted">L’organisateur n’a pas validé votre participation à ce vote. Contactez-le directement si vous pensez qu’il y a une erreur.</p>
+                </FadeIn>
+              )}
+
+              {!approvalMode && !alreadyVoted && step === 'identify' && (
                 <FadeIn>
                   <StepTitle ref={heading} n={1}>
                     Qui êtes-vous ?
@@ -223,7 +382,7 @@ export const VotePage: React.FC = () => {
                 </FadeIn>
               )}
 
-              {!alreadyVoted && step === 'code' && (
+              {!approvalMode && !alreadyVoted && step === 'code' && (
                 <FadeIn>
                   <StepTitle ref={heading} n={2}>
                     Saisissez votre code
