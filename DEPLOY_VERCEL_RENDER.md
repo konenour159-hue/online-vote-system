@@ -60,22 +60,18 @@ Without these settings the "e-mail code" option is simply hidden in the vote for
 Only the **first** account is created this way. Every other organiser requests access on the site and is approved from
 the **Inscriptions** page.
 
-Never run `npm run seed` in production: it creates demo accounts with a known password.
-
-**From your computer** (works on every Render plan). Copy the database's *External Database URL* from the Render
-dashboard, then:
+On your computer, in the project folder, run the helper. It asks for each value one by one (nothing is written to a
+file) and checks them for you:
 
 ```bash
-npm install
-npm run build --workspace=backend
-DATABASE_URL='<external database url>' \
-ADMIN_EMAIL='you@your-domain.fr' \
-ADMIN_PASSWORD='<strong password>' \
-npm run admin:create --workspace=backend
+bash scripts/create-admin.sh
 ```
 
-(On paid plans you can run the same last command in the service's **Shell** tab instead.)
-The password needs 8+ characters with an uppercase letter, a lowercase letter, a digit and a symbol.
+It asks for the database address (Render → your database → **Connect** → **External** tab → *External Database URL*;
+**not** the Internal one), then the administrator's e-mail and a strong password (8+ characters with an uppercase
+letter, a lowercase letter, a digit and a symbol). It prints `Compte SUPER_ADMIN créé` when it works.
+
+Never run `npm run seed` in production: it creates demo accounts with a known password.
 
 ## 4. Deploy the website on Vercel
 

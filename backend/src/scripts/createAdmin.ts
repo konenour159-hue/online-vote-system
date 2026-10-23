@@ -9,8 +9,14 @@ import { validatePassword, validateEmail } from '../utils/validation.js';
  * Le mot de passe n'est jamais affiché.
  */
 const main = async (): Promise<void> => {
-  const email = validateEmail.parse(process.env.ADMIN_EMAIL);
-  const password = validatePassword.parse(process.env.ADMIN_PASSWORD);
+  const emailCheck = validateEmail.safeParse(process.env.ADMIN_EMAIL);
+  if (!emailCheck.success) throw new Error('adresse e-mail invalide.');
+  const passwordCheck = validatePassword.safeParse(process.env.ADMIN_PASSWORD);
+  if (!passwordCheck.success) {
+    throw new Error('le mot de passe doit contenir au moins 8 caractères, avec une majuscule, une minuscule, un chiffre et un symbole.');
+  }
+  const email = emailCheck.data;
+  const password = passwordCheck.data;
   const firstName = process.env.ADMIN_FIRST_NAME || 'Admin';
   const lastName = process.env.ADMIN_LAST_NAME || 'Genies';
 
